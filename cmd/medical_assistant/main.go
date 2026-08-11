@@ -1,1 +1,5 @@
-package medical_assistant
+package main
+
+func main() {
+
+}
