@@ -16,6 +16,7 @@ type Config struct {
 	DBConnectionString string `json:"db_connection_string"`
 	SecretKey          string `json:"secret_key"`
 	TgBotToken         string `json:"tg_bot_token"`
+	WhisperAQpiKey     string `json:"whisper_api_key"`
 }
 
 func NewConfig() *Config {

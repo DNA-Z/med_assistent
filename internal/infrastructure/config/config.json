@@ -3,5 +3,6 @@
   "base_url": "http://localhost",
   "db_connection_string": "",
   "secret_key": "superSecretKey",
-  "tg_bot_token": "8617411806:AAEn5Ap2whKyYt-_yVYRqkIbLKhulIYqM1U"
+  "tg_bot_token": "8617411806:AAEn5Ap2whKyYt-_yVYRqkIbLKhulIYqM1U",
+  "whisper_api_key": "VAGsS8zuoiUCI4hyRAbBWT8A-1EdpmJVtgAjOhMCYGc"
 }
