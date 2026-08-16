@@ -1,35 +1,34 @@
-package handlers
+package telegram
 
 import (
 	"context"
-	"fmt"
-	"logger"
 
 	"gopkg.in/telebot.v3"
 )
 
-func (b *Bot) handleStart(m *telebot.Message) {
-
+func (b *Bot) handleStart(c telebot.Context) error {
 	ctx := context.Background()
 
-	err := b.auth.Start(ctx, m.Sender.ID)
+	err := b.auth.Start(ctx, c.Sender().ID)
 	if err != nil {
 		b.logger.Error(
 			"failed to authenticate telegram user",
-			"telegram_user_id", m.Sender.ID,
+			"telegram_user_id", c.Sender().ID,
 			"error", err,
 		)
 
-		_ = b.bot.Send(
-			m.Sender,
+		if _, err := b.bot.Send(
+			c.Sender(),
 			"Не удалось зарегистрировать пользователя.",
-		)
+		); err != nil {
+			return err
+		}
 
-		return
+		return nil
 	}
 
-	_, _ = b.bot.Send(
-		m.Sender,
+	_, err = b.bot.Send(
+		c.Sender(),
 		"Вы успешно зарегистрированы.\n\n"+
 			"Доступные команды:\n"+
 			"/load — загрузить аудиозапись\n"+
@@ -40,4 +39,6 @@ func (b *Bot) handleStart(m *telebot.Message) {
 			"/chat <вопрос> — задать вопрос\n"+
 			"/retry <id> — повторить обработку",
 	)
+
+	return err
 }

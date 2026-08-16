@@ -2,6 +2,7 @@ package telegram
 
 import (
 	"log/slog"
+	"time"
 
 	"gopkg.in/telebot.v3"
 
@@ -9,13 +10,11 @@ import (
 )
 
 type Bot struct {
-	bot *telebot.Bot
-
-	auth         ports.AuthService
-	commands     ports.ExaminationCommandHandler
-	queries      ports.ExaminationQueryHandler
-	logger       *slog.Logger
-	fileUploader FileUploader
+	bot      *telebot.Bot
+	auth     ports.AuthService
+	commands ports.ExaminationCommandHandler
+	queries  ports.ExaminationQueryHandler
+	logger   *slog.Logger
 }
 
 type Config struct {
@@ -24,11 +23,10 @@ type Config struct {
 }
 
 type Dependencies struct {
-	Auth         ports.AuthService
-	Commands     ports.ExaminationCommandHandler
-	Queries      ports.ExaminationQueryHandler
-	FileUploader FileUploader
-	Logger       *slog.Logger
+	Auth     ports.AuthService
+	Commands ports.ExaminationCommandHandler
+	Queries  ports.ExaminationQueryHandler
+	Logger   *slog.Logger
 }
 
 func New(
@@ -39,7 +37,7 @@ func New(
 	b, err := telebot.NewBot(telebot.Settings{
 		Token: cfg.Token,
 		Poller: &telebot.LongPoller{
-			Timeout: cfg.Timeout,
+			Timeout: time.Duration(cfg.Timeout) * time.Second,
 		},
 	})
 
@@ -48,12 +46,11 @@ func New(
 	}
 
 	result := &Bot{
-		bot:          b,
-		auth:         deps.Auth,
-		commands:     deps.Commands,
-		queries:      deps.Queries,
-		fileUploader: deps.FileUploader,
-		logger:       deps.Logger,
+		bot:      b,
+		auth:     deps.Auth,
+		commands: deps.Commands,
+		queries:  deps.Queries,
+		logger:   deps.Logger,
 	}
 
 	result.registerHandlers()
