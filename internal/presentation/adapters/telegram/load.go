@@ -16,8 +16,6 @@ func (b *Bot) handleLoad(c telebot.Context) error {
 		return nil
 	}
 
-	// Для /load Telegram сам по себе файл не прикладывает.
-	// Фактическая загрузка файла происходит через handleVoice/handleAudio.
 	_, err := b.bot.Send(
 		c.Sender(),
 		"Для загрузки встречи отправьте голосовое сообщение или аудиофайл.",
