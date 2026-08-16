@@ -1,63 +1,36 @@
+// internal/application/auth/service.go
 package auth
 
 import (
 	"context"
 
 	"github.com/DNA-Z/med_assistent/internal/application/ports"
-	"github.com/DNA-Z/med_assistent/internal/domain/entity"
-	"github.com/google/uuid"
 )
 
 type Service struct {
-	doctors ports.DoctorRepository
+	doctors ports.DoctorWriteRepository
 }
 
 func NewService(
-	doctors ports.DoctorRepository,
+	doctors ports.DoctorWriteRepository,
 ) *Service {
 	return &Service{
 		doctors: doctors,
 	}
 }
 
-type Identity struct {
-	TelegramID int64
-	Name       string
-	LastName   string
-}
-
-func (s *Service) Authenticate(
+func (s *Service) Start(
 	ctx context.Context,
-	identity Identity,
-) (*entity.Doctor, error) {
-
-	doctor, err := s.doctors.GetByID(
-		ctx,
-		identity.TelegramID,
-	)
-
-	if err == nil {
-		return doctor, nil
-	}
-
-	// Здесь в реальном приложении лучше использовать
-	// отдельный registration flow.
-	doctorID := uuid.New()
-
-	doctor, err = entity.NewDoctor(
-		doctorID,
-		identity.Name,
-		identity.LastName,
-		// остальные необходимые данные
-	)
-
+	doctorID int64,
+) error {
+	exists, err := s.doctors.Exists(ctx, doctorID)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	if err := s.doctors.Create(ctx, doctor); err != nil {
-		return nil, err
+	if exists {
+		return nil
 	}
 
-	return doctor, nil
+	return s.doctors.Create(ctx, doctorID)
 }

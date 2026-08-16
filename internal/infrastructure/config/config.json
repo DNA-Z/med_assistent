@@ -1,8 +1,0 @@
-{
-  "server_address": "localhost:8080",
-  "base_url": "http://localhost",
-  "db_connection_string": "",
-  "secret_key": "",
-  "tg_bot_token": "",
-  "whisper_api_key": ""
-}

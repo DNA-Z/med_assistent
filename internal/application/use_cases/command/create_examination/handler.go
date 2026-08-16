@@ -16,12 +16,9 @@ var (
 )
 
 type Command struct {
-	DoctorID uuid.UUID
-
-	PatientID uuid.UUID
-
-	Audio io.Reader
-
+	DoctorID        uuid.UUID
+	PatientID       uuid.UUID
+	Audio           io.Reader
 	ExaminationDate time.Time
 }
 

@@ -1,22 +1,24 @@
-// Package config предоставляет конфигурацию для сервиса
+// Package config предоставляет конфигурацию для сервиса.
 package config
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
 	"log"
 	"os"
+
+	"gopkg.in/yaml.v3"
 )
 
 // Config представляет структуру конфигурационного файла.
 type Config struct {
-	ServerAddress      string `json:"server_address"`
-	BaseURL            string `json:"base_url"`
-	DBConnectionString string `json:"db_connection_string"`
-	SecretKey          string `json:"secret_key"`
-	TgBotToken         string `json:"tg_bot_token"`
-	WhisperAQpiKey     string `json:"whisper_api_key"`
+	ServerAddress      string `yaml:"server_address"`
+	BaseURL            string `yaml:"base_url"`
+	DBConnectionString string `yaml:"db_connection_string"`
+	SecretKey          string `yaml:"secret_key"`
+	TgBotToken         string `yaml:"tg_bot_token"`
+	WhisperAPIKey      string `yaml:"whisper_api_key"`
+	GigaChatToken      string `yaml:"gigachat_token"`
+	GigaChatModel      string `yaml:"gigachat_model"`
 }
 
 func NewConfig() *Config {
@@ -25,36 +27,43 @@ func NewConfig() *Config {
 		BaseURL:            "",
 		DBConnectionString: "",
 		SecretKey:          "",
+		TgBotToken:         "",
+		WhisperAPIKey:      "",
+		GigaChatToken:      "",
+		GigaChatModel:      "GigaChat-2",
 	}
 }
 
 func (o *Config) ConfigInit() {
-	jsonConfig, err := o.readConfigFile()
+	cfg, err := o.readConfigFile()
 	if err != nil {
 		log.Printf("Warning: failed to read config file: %v", err)
+		return
 	}
+
+	*o = *cfg
 }
 
 func (o *Config) readConfigFile() (*Config, error) {
-	configFile := "config.json"
+	configFile := "config.yaml"
 
-	file, err := os.Open(configFile)
+	data, err := os.ReadFile(configFile)
 	if err != nil {
-		return nil, fmt.Errorf("failed to open config file %s: %w", configFile, err)
+		return nil, fmt.Errorf(
+			"failed to read config file %s: %w",
+			configFile,
+			err,
+		)
 	}
-	defer file.Close()
-
-	var buf bytes.Buffer
-	_, err = buf.ReadFrom(file)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read config file %s: %w", configFile, err)
-	}
-
-	data := buf.Bytes()
 
 	var cfg Config
-	if err := json.Unmarshal(data, &cfg); err != nil {
-		return nil, fmt.Errorf("failed to parse config file %s: %w", configFile, err)
+
+	if err := yaml.Unmarshal(data, &cfg); err != nil {
+		return nil, fmt.Errorf(
+			"failed to parse config file %s: %w",
+			configFile,
+			err,
+		)
 	}
 
 	return &cfg, nil

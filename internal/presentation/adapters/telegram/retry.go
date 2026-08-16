@@ -27,8 +27,8 @@ func (b *Bot) handleRetry(c telebot.Context) error {
 	err = b.commands.Retry(
 		context.Background(),
 		ports.RetryExaminationCommand{
-			DoctorTelegramID: c.Sender().ID,
-			ExaminationID:    id,
+			DoctorID:      c.Sender().ID,
+			ExaminationID: id,
 		},
 	)
 	if err != nil {

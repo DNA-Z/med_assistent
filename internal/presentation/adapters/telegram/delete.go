@@ -27,8 +27,8 @@ func (b *Bot) handleDelete(c telebot.Context) error {
 	err = b.commands.Delete(
 		context.Background(),
 		ports.DeleteExaminationCommand{
-			DoctorTelegramID: c.Sender().ID,
-			ExaminationID:    id,
+			DoctorID:      c.Sender().ID,
+			ExaminationID: id,
 		},
 	)
 	if err != nil {

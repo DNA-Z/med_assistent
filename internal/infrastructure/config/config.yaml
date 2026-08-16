@@ -1,0 +1,11 @@
+server_address: ""
+base_url: ""
+db_connection_string: ""
+secret_key: ""
+
+tg_bot_token: ""
+
+whisper_api_key: ""
+
+gigachat_token: ""
+gigachat_model: "GigaChat-2"

@@ -2,12 +2,13 @@ package ports
 
 import (
 	"context"
+	"io"
 
 	"github.com/google/uuid"
 )
 
 type AuthService interface {
-	Start(ctx context.Context, telegramUserID int64) error
+	Start(ctx context.Context, doctorID int64) error
 }
 
 type ExaminationCommandHandler interface {
@@ -17,17 +18,21 @@ type ExaminationCommandHandler interface {
 }
 
 type LoadExaminationCommand struct {
-	DoctorTelegramID int64
-	FileName         string
-	FilePath         string
+	DoctorID  int64
+	PatientID uuid.UUID
+
+	FileName string
+	File     io.ReadCloser
+
+	Transcript *string
 }
 
 type RetryExaminationCommand struct {
-	DoctorTelegramID int64
-	ExaminationID    uuid.UUID
+	DoctorID      int64
+	ExaminationID uuid.UUID
 }
 
 type DeleteExaminationCommand struct {
-	DoctorTelegramID int64
-	ExaminationID    uuid.UUID
+	DoctorID      int64
+	ExaminationID uuid.UUID
 }

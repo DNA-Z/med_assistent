@@ -6,8 +6,5 @@ import (
 )
 
 type SpeechClient interface {
-	Transcribe(
-		ctx context.Context,
-		audio io.Reader,
-	) (string, error)
+	Transcribe(ctx context.Context, audio io.Reader) (string, error)
 }

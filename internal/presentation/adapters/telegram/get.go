@@ -28,8 +28,8 @@ func (b *Bot) handleGet(c telebot.Context) error {
 	result, err := b.queries.Get(
 		context.Background(),
 		ports.GetExaminationQuery{
-			DoctorTelegramID: c.Sender().ID,
-			ExaminationID:    id,
+			DoctorID:      c.Sender().ID,
+			ExaminationID: id,
 		},
 	)
 	if err != nil {
@@ -58,13 +58,13 @@ func (b *Bot) handleGet(c telebot.Context) error {
 			"Статус: %s\n\n"+
 			"Транскрипция:\n%s",
 		result.ID,
-		result.CreatedAt.Format("02.01.2006 15:04"),
+		result.ExaminationDate.Format("02.01.2006 15:04"),
 		result.Status,
-		result.Transcription,
+		result.Transcript,
 	)
 
-	if result.BriefSummary != "" {
-		message += "\n\nВыжимка:\n" + result.BriefSummary
+	if result.Summary != "" {
+		message += "\n\nВыжимка:\n" + result.Summary
 	}
 
 	_, err = b.bot.Send(c.Sender(), message)

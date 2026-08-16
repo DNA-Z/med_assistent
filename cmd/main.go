@@ -1,46 +1,55 @@
 package main
 
 import (
-	"context"
-	"fmt"
 	"log"
+	"log/slog"
+	"net/http"
+	"os"
 
-	"github.com/redis/go-redis/v9"
+	"github.com/DNA-Z/med_assistent/internal/application"
+	"github.com/DNA-Z/med_assistent/internal/infrastructure/adapters/gigachat"
+	"github.com/DNA-Z/med_assistent/internal/infrastructure/adapters/whisper"
+	"github.com/DNA-Z/med_assistent/internal/infrastructure/config"
+	"github.com/DNA-Z/med_assistent/internal/presentation/adapters/telegram"
 )
 
 func main() {
-	// Создаем контекст, который требуется для всех операций
-	ctx := context.Background()
-
-	// Создаем клиент для подключения к Redis
-	// Адрес: localhost:6379 (стандартный порт)
-	// Пароль: "" (пустая строка, так как вы его не устанавливали)
-	// База данных: 0 (используется по умолчанию)
-	rdb := redis.NewClient(&redis.Options{
-		Addr:     "localhost:6379",   // Адрес вашего Redis-сервера в WSL[citation:3][citation:7][citation:9]
-		Password: "NaS16cyd93@go_7m", // Пароль не установлен[citation:1][citation:3]
-		DB:       0,                  // Используем базу данных по умолчанию[citation:1][citation:3]
-	})
-	defer rdb.Close() // Закрываем соединение при завершении программы
-
-	// Проверяем подключение командой PING
-	pong, err := rdb.Ping(ctx).Result()
+	cfg, err := config.Load("config.yaml")
 	if err != nil {
-		log.Fatalf("Не удалось подключиться к Redis: %v", err)
-	}
-	fmt.Println("Успешное подключение:", pong) // Должно вывести "PONG"
-
-	// Пример: запись и чтение данных
-	// Записываем значение
-	err = rdb.Set(ctx, "my_key", "my_value", 0).Err()
-	if err != nil {
-		log.Fatalf("Ошибка при записи: %v", err)
+		log.Fatalf("load config: %v", err)
 	}
 
-	// Читаем значение
-	val, err := rdb.Get(ctx, "my_key").Result()
+	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+
+	httpClient := &http.Client{}
+
+	speechClient := whisper.NewClient(
+		httpClient,
+		cfg.Whisper.APIKey,
+	)
+
+	llmClient := gigachat.NewClient(
+		httpClient,
+		cfg.GigaChat.Token,
+		cfg.GigaChat.Model,
+	)
+
+	app := application.New(
+		speechClient,
+		llmClient,
+		logger,
+	)
+
+	bot, err := telegram.New(
+		cfg.Telegram.Token,
+		app,
+		logger,
+	)
 	if err != nil {
-		log.Fatalf("Ошибка при чтении: %v", err)
+		log.Fatalf("create telegram bot: %v", err)
 	}
-	fmt.Println("Прочитано значение:", val) // Должно вывести "my_value"
+
+	if err := bot.Start(); err != nil {
+		log.Fatalf("telegram bot stopped: %v", err)
+	}
 }

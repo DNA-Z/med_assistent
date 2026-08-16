@@ -1,0 +1,134 @@
+package gigachat
+
+import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
+
+	"github.com/DNA-Z/med_assistent/internal/application/ports"
+)
+
+const defaultBaseURL = "https://api.giga.chat/v1"
+
+var _ ports.LLMClient = (*Client)(nil)
+
+type Client struct {
+	httpClient *http.Client
+	token      string
+	model      string
+	baseURL    string
+}
+
+func NewClient(
+	httpClient *http.Client,
+	token string,
+	model string,
+) *Client {
+	if httpClient == nil {
+		httpClient = http.DefaultClient
+	}
+
+	if model == "" {
+		model = "GigaChat-2"
+	}
+
+	return &Client{
+		httpClient: httpClient,
+		token:      token,
+		model:      model,
+		baseURL:    defaultBaseURL,
+	}
+}
+
+func (c *Client) Ask(
+	ctx context.Context,
+	prompt string,
+) (string, error) {
+	requestBody := chatRequest{
+		Model: c.model,
+		Messages: []message{
+			{
+				Role:    "user",
+				Content: prompt,
+			},
+		},
+		Stream:            false,
+		RepetitionPenalty: 1,
+	}
+
+	body, err := json.Marshal(requestBody)
+	if err != nil {
+		return "", fmt.Errorf("marshal gigachat request: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(
+		ctx,
+		http.MethodPost,
+		c.baseURL+"/chat/completions",
+		bytes.NewReader(body),
+	)
+	if err != nil {
+		return "", fmt.Errorf("create gigachat request: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Authorization", "Bearer "+c.token)
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("gigachat request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
+		responseBody, _ := io.ReadAll(resp.Body)
+
+		return "", fmt.Errorf(
+			"gigachat API returned status %d: %s",
+			resp.StatusCode,
+			string(responseBody),
+		)
+	}
+
+	var response chatResponse
+
+	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
+		return "", fmt.Errorf("decode gigachat response: %w", err)
+	}
+
+	if len(response.Choices) == 0 {
+		return "", fmt.Errorf("gigachat returned no choices")
+	}
+
+	content := response.Choices[0].Message.Content
+
+	if content == "" {
+		return "", fmt.Errorf("gigachat returned empty response")
+	}
+
+	return content, nil
+}
+
+type chatRequest struct {
+	Model             string    `json:"model"`
+	Messages          []message `json:"messages"`
+	Stream            bool      `json:"stream"`
+	RepetitionPenalty float64   `json:"repetition_penalty"`
+}
+
+type message struct {
+	Role    string `json:"role"`
+	Content string `json:"content"`
+}
+
+type chatResponse struct {
+	Choices []choice `json:"choices"`
+}
+
+type choice struct {
+	Message message `json:"message"`
+}

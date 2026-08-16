@@ -97,9 +97,9 @@ func (b *Bot) processTelegramFile(
 	id, err := b.commands.Load(
 		context.Background(),
 		ports.LoadExaminationCommand{
-			DoctorTelegramID: c.Sender().ID,
-			File:             data,
-			FileName:         fileName,
+			DoctorID: c.Sender().ID,
+			File:     data,
+			FileName: fileName,
 		},
 	)
 	if err != nil {

@@ -56,7 +56,7 @@ func (b *Bot) handleList(c telebot.Context) error {
 				"Создано: %s\n"+
 				"Статус: %s\n",
 			examination.ID,
-			examination.CreatedAt.Format("02.01.2006 15:04"),
+			examination.ExaminationDate.Format("02.01.2006 15:04"),
 			examination.Status,
 		)
 
