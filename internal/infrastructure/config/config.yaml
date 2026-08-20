@@ -1,11 +1,20 @@
-server_address: ""
-base_url: ""
-db_connection_string: ""
-secret_key: ""
-
-tg_bot_token: ""
-
-whisper_api_key: ""
-
-gigachat_token: ""
-gigachat_model: "GigaChat-2"
+db_connection_string: "postgres://postgres:postgres@localhost:5432/med_assistant?sslmode=disable"
+telegram:
+  token: ""
+  timeout: 10
+redis:
+  address: "localhost:6379"
+  password: ""
+  db: 0
+speech:
+  provider: "mock"
+  api_key: ""
+  timeout: 60
+llm:
+  provider: "mock"
+  token: ""
+  model: "GigaChat-2"
+  timeout: 60
+processing:
+  workers: 4
+  timeout: 900

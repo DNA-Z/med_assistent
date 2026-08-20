@@ -1,5 +1,28 @@
 package telegram
 
+import (
+	"context"
+	"github.com/DNA-Z/med_assistent/internal/application/ports"
+	"gopkg.in/telebot.v3"
+	"strings"
+)
+
+func (b *Bot) handleChat(c telebot.Context) error {
+	question := strings.TrimSpace(c.Message().Payload)
+	if question == "" {
+		_, err := b.bot.Send(c.Sender(), "Использование:\n/chat <вопрос>")
+		return err
+	}
+	answer, err := b.queries.Chat(context.Background(), ports.ChatQuery{DoctorID: c.Sender().ID, Question: question})
+	if err != nil {
+		b.logger.Error("failed to chat", "error", err)
+		_, sendErr := b.bot.Send(c.Sender(), "Не удалось получить ответ.")
+		return sendErr
+	}
+	_, err = b.bot.Send(c.Sender(), answer)
+	return err
+}
+
 //
 //import (
 //	"context"

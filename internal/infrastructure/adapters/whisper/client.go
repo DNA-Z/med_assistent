@@ -40,12 +40,16 @@ func NewClient(
 func (c *Client) Transcribe(
 	ctx context.Context,
 	audio io.Reader,
+	fileName string,
 ) (string, error) {
 	var body bytes.Buffer
 
 	writer := multipart.NewWriter(&body)
 
-	part, err := writer.CreateFormFile("file", "audio.mp3")
+	if fileName == "" {
+		fileName = "audio.mp3"
+	}
+	part, err := writer.CreateFormFile("file", fileName)
 	if err != nil {
 		return "", fmt.Errorf("create multipart file: %w", err)
 	}

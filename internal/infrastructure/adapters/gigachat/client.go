@@ -113,6 +113,14 @@ func (c *Client) Ask(
 	return content, nil
 }
 
+func (c *Client) Summarize(ctx context.Context, transcript string) (string, error) {
+	return c.Ask(ctx, "Сделай краткую медицинскую выжимку следующего опроса:\n"+transcript)
+}
+
+func (c *Client) Answer(ctx context.Context, contextText, question string) (string, error) {
+	return c.Ask(ctx, "Материалы опросов:\n"+contextText+"\nВопрос врача: "+question)
+}
+
 type chatRequest struct {
 	Model             string    `json:"model"`
 	Messages          []message `json:"messages"`

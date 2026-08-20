@@ -29,3 +29,5 @@ func New(ctx context.Context, dsn string) (*Store, error) {
 func (s *Store) Close() {
 	s.pool.Close()
 }
+
+func (s *Store) Pool() *pgxpool.Pool { return s.pool }

@@ -57,3 +57,7 @@ func New(
 
 	return result, nil
 }
+
+func (b *Bot) Start() { b.bot.Start() }
+
+func (b *Bot) Stop() { b.bot.Stop() }

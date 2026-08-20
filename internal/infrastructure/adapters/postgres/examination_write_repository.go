@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -31,6 +32,11 @@ func (r *ExaminationWriteRepository) CreateExamination(
 		return err
 	}
 	defer tx.Rollback(ctx)
+
+	_, err = tx.Exec(ctx, `INSERT INTO patients (id, created_at) VALUES ($1, $2) ON CONFLICT (id) DO NOTHING`, examination.PatientID, examination.CreatedAt)
+	if err != nil {
+		return err
+	}
 
 	_, err = tx.Exec(
 		ctx,
@@ -142,6 +148,11 @@ func (r *ExaminationWriteRepository) StartProcessing(
 		startedAt,
 		attempt,
 	)
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.Exec(ctx, `INSERT INTO outbox_events (id, aggregate_id, event_type, payload, created_at) VALUES ($1,$2,'examination.processing',$3,$4)`, uuid.New(), examinationID, []byte(`{"status":"processing"}`), startedAt)
 	if err != nil {
 		return err
 	}
@@ -432,29 +443,37 @@ func (r *ExaminationWriteRepository) FailProcessing(
 
 func (r *ExaminationWriteRepository) RetryProcessing(
 	ctx context.Context,
+	doctorID int64,
 	examinationID uuid.UUID,
 	jobID uuid.UUID,
 	updatedAt time.Time,
-) error {
+) (uuid.UUID, string, error) {
 	tx, err := r.store.pool.Begin(ctx)
 	if err != nil {
-		return err
+		return uuid.Nil, "", err
 	}
 	defer tx.Rollback(ctx)
 
 	var oldJobID uuid.UUID
+	var transcript string
 
 	err = tx.QueryRow(
 		ctx,
-		`SELECT id
-		 FROM processing_jobs
-		 WHERE examination_id = $1
-		 ORDER BY created_at DESC
+		`SELECT j.id, COALESCE(t.text, '')
+		 FROM processing_jobs j
+		 JOIN examinations e ON e.id = j.examination_id
+		 LEFT JOIN transcripts t ON t.examination_id = e.id
+		 WHERE j.examination_id = $1 AND e.doctor_id = $2 AND e.status = 'failed'
+		 ORDER BY j.created_at DESC
 		 LIMIT 1`,
 		examinationID,
-	).Scan(&oldJobID)
+		doctorID,
+	).Scan(&oldJobID, &transcript)
 	if err != nil {
-		return err
+		return uuid.Nil, "", err
+	}
+	if transcript == "" {
+		return uuid.Nil, "", ports.ErrFileRequired
 	}
 
 	_, err = tx.Exec(
@@ -470,7 +489,7 @@ func (r *ExaminationWriteRepository) RetryProcessing(
 		updatedAt,
 	)
 	if err != nil {
-		return err
+		return uuid.Nil, "", err
 	}
 
 	_, err = tx.Exec(
@@ -485,7 +504,7 @@ func (r *ExaminationWriteRepository) RetryProcessing(
 		updatedAt,
 	)
 	if err != nil {
-		return err
+		return uuid.Nil, "", err
 	}
 
 	_, err = tx.Exec(
@@ -505,10 +524,13 @@ func (r *ExaminationWriteRepository) RetryProcessing(
 		updatedAt,
 	)
 	if err != nil {
-		return err
+		return uuid.Nil, "", err
 	}
 
-	return tx.Commit(ctx)
+	if err := tx.Commit(ctx); err != nil {
+		return uuid.Nil, "", err
+	}
+	return oldJobID, transcript, nil
 }
 
 func (r *ExaminationWriteRepository) DeleteExamination(
@@ -535,7 +557,12 @@ func (r *ExaminationWriteRepository) DeleteExamination(
 	}
 
 	if result.RowsAffected() == 0 {
-		return nil
+		return ports.ErrExaminationNotFound
+	}
+	payload := []byte(fmt.Sprintf(`{"doctor_id":%d}`, doctorID))
+	_, err = tx.Exec(ctx, `INSERT INTO outbox_events (id, aggregate_id, event_type, payload, created_at) VALUES ($1,$2,'examination.deleted',$3,now())`, uuid.New(), examinationID, payload)
+	if err != nil {
+		return err
 	}
 
 	return tx.Commit(ctx)

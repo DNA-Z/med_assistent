@@ -54,10 +54,11 @@ type ExaminationWriteRepository interface {
 
 	RetryProcessing(
 		ctx context.Context,
+		doctorID int64,
 		examinationID uuid.UUID,
 		jobID uuid.UUID,
 		updatedAt time.Time,
-	) error
+	) (uuid.UUID, string, error)
 
 	DeleteExamination(
 		ctx context.Context,

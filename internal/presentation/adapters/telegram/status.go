@@ -24,8 +24,8 @@ func (b *Bot) handleStatus(c telebot.Context) error {
 	result, err := b.queries.Status(
 		context.Background(),
 		ports.GetExaminationStatusQuery{
-			DoctorTelegramID: c.Sender().ID,
-			ExaminationID:    id,
+			DoctorID:      c.Sender().ID,
+			ExaminationID: id,
 		},
 	)
 

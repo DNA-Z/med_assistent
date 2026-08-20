@@ -1,6 +1,7 @@
 package telegram
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -51,7 +52,14 @@ func (b *Bot) processTelegramFile(
 		FileID: fileID,
 	}
 
-	if err := b.bot.Download(&file.File, fileName); err != nil {
+	temp, err := os.CreateTemp("", "med-assistant-*")
+	if err != nil {
+		return err
+	}
+	tempName := temp.Name()
+	_ = temp.Close()
+	defer os.Remove(tempName)
+	if err := b.bot.Download(file, tempName); err != nil {
 		b.logger.Error(
 			"failed to download telegram file",
 			"telegram_user_id", c.Sender().ID,
@@ -71,7 +79,7 @@ func (b *Bot) processTelegramFile(
 		return nil
 	}
 
-	data, err := readFile(fileName)
+	data, err := readFile(tempName)
 	if err != nil {
 		b.logger.Error(
 			"failed to read downloaded file",
@@ -96,7 +104,7 @@ func (b *Bot) processTelegramFile(
 		context.Background(),
 		ports.LoadExaminationCommand{
 			DoctorID: c.Sender().ID,
-			File:     data,
+			File:     io.NopCloser(bytes.NewReader(data)),
 			FileName: fileName,
 		},
 	)

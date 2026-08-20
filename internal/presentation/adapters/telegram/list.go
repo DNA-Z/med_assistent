@@ -14,7 +14,7 @@ func (b *Bot) handleList(c telebot.Context) error {
 	result, err := b.queries.List(
 		context.Background(),
 		ports.ListExaminationsQuery{
-			DoctorTelegramID: c.Sender().ID,
+			DoctorID: c.Sender().ID,
 		},
 	)
 	if err != nil {

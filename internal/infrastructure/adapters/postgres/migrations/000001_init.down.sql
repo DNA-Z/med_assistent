@@ -1,0 +1,9 @@
+DROP TABLE IF EXISTS outbox_events;
+DROP TABLE IF EXISTS processing_errors;
+DROP TABLE IF EXISTS diagnoses;
+DROP TABLE IF EXISTS summaries;
+DROP TABLE IF EXISTS transcripts;
+DROP TABLE IF EXISTS processing_jobs;
+DROP TABLE IF EXISTS examinations;
+DROP TABLE IF EXISTS patients;
+DROP TABLE IF EXISTS doctors;

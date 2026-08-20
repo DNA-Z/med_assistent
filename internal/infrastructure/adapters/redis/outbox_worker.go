@@ -7,15 +7,24 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/DNA-Z/med_assistent/internal/application/ports"
+	postgresadapter "github.com/DNA-Z/med_assistent/internal/infrastructure/adapters/postgres"
 )
 
 type OutboxWorker struct {
 	pg     *pgxpool.Pool
 	redis  *Client
 	logger *slog.Logger
+}
+
+type outboxEvent struct {
+	id          uuid.UUID
+	aggregateID uuid.UUID
+	eventType   string
+	payload     []byte
 }
 
 func NewOutboxWorker(
@@ -59,8 +68,8 @@ func (w *OutboxWorker) process(
 	}
 	defer tx.Rollback(ctx)
 
-	rows, err := tx.Query(
-		ctx,
+	repository := postgresadapter.NewQueryRepository(
+		tx,
 		`SELECT
 			id,
 			aggregate_id,
@@ -71,33 +80,29 @@ func (w *OutboxWorker) process(
 		ORDER BY created_at
 		FOR UPDATE SKIP LOCKED
 		LIMIT 100`,
+		func(row pgx.CollectableRow) (outboxEvent, error) {
+			var event outboxEvent
+			err := row.Scan(&event.id, &event.aggregateID, &event.eventType, &event.payload)
+			return event, err
+		},
 	)
-	if err != nil {
-		return err
-	}
-	defer rows.Close()
 
-	for rows.Next() {
-		var (
-			eventID     uuid.UUID
-			aggregateID uuid.UUID
-			eventType   string
-			payload     []byte
-		)
-
-		if err := rows.Scan(
-			&eventID,
-			&aggregateID,
-			&eventType,
-			&payload,
-		); err != nil {
-			return err
+	for result := range repository.Seq(ctx) {
+		if result.Err != nil {
+			return result.Err
 		}
-
-		if err := w.project(
-			ctx,
-			aggregateID,
-		); err != nil {
+		event := result.Value
+		if event.eventType == "examination.deleted" {
+			var deleted struct {
+				DoctorID int64 `json:"doctor_id"`
+			}
+			if err := json.Unmarshal(event.payload, &deleted); err != nil {
+				return err
+			}
+			if err := RemoveExamination(ctx, w.redis, deleted.DoctorID, event.aggregateID); err != nil {
+				return err
+			}
+		} else if err := w.project(ctx, event.aggregateID); err != nil {
 			return err
 		}
 
@@ -106,18 +111,12 @@ func (w *OutboxWorker) process(
 			`UPDATE outbox_events
 			 SET processed_at = now()
 			 WHERE id = $1`,
-			eventID,
+			event.id,
 		)
 		if err != nil {
 			return err
 		}
 
-		_ = eventType
-		_ = payload
-	}
-
-	if err := rows.Err(); err != nil {
-		return err
 	}
 
 	return tx.Commit(ctx)
@@ -169,7 +168,7 @@ func (w *OutboxWorker) project(
 		return err
 	}
 
-	return StoreExamination(
+	return ProjectExamination(
 		ctx,
 		w.redis,
 		item,
