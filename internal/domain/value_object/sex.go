@@ -4,7 +4,7 @@ import "errors"
 
 type Sex string
 
-// Константы пола
+// Допустимые значения пола пациента.
 const (
 	Male   Sex = "мужской"
 	Female Sex = "женский"

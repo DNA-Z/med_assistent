@@ -1,4 +1,4 @@
-// Package config предоставляет конфигурацию для сервиса.
+// Package config отвечает за загрузку и проверку конфигурации сервиса.
 package config
 
 import (

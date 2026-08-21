@@ -4,7 +4,7 @@ import (
 	"errors"
 )
 
-// Category - тип для категории врача
+// Category — категория врача.
 type Category int
 
 const (

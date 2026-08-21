@@ -16,7 +16,7 @@ var (
 	ErrInvalidWorkExperience = errors.New("invalid work experience")
 )
 
-// Doctor - тип врач-психиатр
+// Doctor — врач-психиатр, работающий с системой.
 type Doctor struct {
 	id             uuid.UUID
 	name           string

@@ -10,7 +10,7 @@ var (
 	ErrFutureDateOfBirth = errors.New("date of birth cannot be in the future")
 )
 
-// DateOfBirth представляет дату рождения
+// DateOfBirth представляет дату рождения.
 type DateOfBirth struct {
 	value time.Time
 }
