@@ -36,6 +36,13 @@ func (s *Service) Load(ctx context.Context, cmd ports.LoadExaminationCommand) (u
 	if err != nil {
 		return uuid.Nil, err
 	}
+	s.logger.Info(
+		"обследование и задача обработки созданы",
+		"doctor_id", cmd.DoctorID,
+		"examination_id", examinationID,
+		"job_id", jobID,
+		"file_name", cmd.FileName,
+	)
 	file, transcript := cmd.File, cmd.Transcript
 	s.processing.Go(func() error {
 		if file != nil {

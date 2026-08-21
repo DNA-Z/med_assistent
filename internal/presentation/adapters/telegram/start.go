@@ -37,7 +37,8 @@ func (b *Bot) handleStart(c telebot.Context) error {
 			"/get <id> — получить транскрипцию\n"+
 			"/find <текст> — поиск\n"+
 			"/chat <вопрос> — задать вопрос\n"+
-			"/retry <id> — повторить обработку",
+			"/retry <id> — повторить обработку\n"+
+			"/delete <id> — удалить обследование",
 	)
 
 	return err

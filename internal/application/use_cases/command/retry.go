@@ -20,6 +20,7 @@ func (s *Service) Retry(ctx context.Context, cmd ports.RetryExaminationCommand) 
 	if strings.TrimSpace(transcript) == "" {
 		return ports.ErrFileRequired
 	}
+	s.logger.Info("повторная обработка поставлена в очередь", "doctor_id", cmd.DoctorID, "examination_id", cmd.ExaminationID, "job_id", jobID)
 	s.processing.Go(func() error {
 		s.process(cmd.ExaminationID, jobID, nil, "", &transcript)
 		return nil

@@ -49,7 +49,10 @@ func run(logger *slog.Logger) (runErr error) {
 	if err != nil {
 		return fmt.Errorf("connect postgres: %w", err)
 	}
-	defer pg.Close()
+	defer func() {
+		pg.Close()
+		logger.Info("соединение с PostgreSQL закрыто")
+	}()
 
 	rdb, err := redisadapter.New(cfg.Redis.Address, cfg.Redis.Password, cfg.Redis.DB)
 	if err != nil {
@@ -58,7 +61,9 @@ func run(logger *slog.Logger) (runErr error) {
 	defer func() {
 		if err := rdb.Close(); err != nil {
 			runErr = errors.Join(runErr, fmt.Errorf("close redis: %w", err))
+			return
 		}
+		logger.Info("соединение с Redis закрыто")
 	}()
 
 	speech, llm, err := clients(cfg)
@@ -67,9 +72,12 @@ func run(logger *slog.Logger) (runErr error) {
 	}
 
 	commands := command.NewService(ctx, postgres.NewExaminationWriteRepository(pg), speech, llm, logger, cfg.Processing.Workers)
-	defer func() { runErr = errors.Join(runErr, commands.Close()) }()
-	queries := queryapp.NewService(redisadapter.NewExaminationReadRepository(rdb), llm)
-	authService := auth.NewService(postgres.NewDoctorRepository(pg))
+	defer func() {
+		runErr = errors.Join(runErr, commands.Close())
+		logger.Info("фоновые задачи обработки остановлены")
+	}()
+	queries := queryapp.NewService(redisadapter.NewExaminationReadRepository(rdb), llm, logger)
+	authService := auth.NewService(postgres.NewDoctorRepository(pg), logger)
 
 	outbox := redisadapter.NewOutboxWorker(pg.Pool(), rdb, logger)
 	bot, err := telegram.New(telegram.Config{Token: cfg.Telegram.Token, Timeout: cfg.Telegram.Timeout}, telegram.Dependencies{Auth: authService, Commands: commands, Queries: queries, Logger: logger})
@@ -91,6 +99,7 @@ func run(logger *slog.Logger) (runErr error) {
 	})
 	group.Go(func() error {
 		<-groupCtx.Done()
+		logger.Info("получен сигнал завершения", "reason", groupCtx.Err())
 		bot.Stop()
 		return nil
 	})

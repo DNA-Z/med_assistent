@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/DNA-Z/med_assistent/internal/application/ports"
 	"github.com/google/uuid"
+	"log/slog"
 	"testing"
 )
 
@@ -32,14 +33,14 @@ func (llmStub) Answer(context.Context, string, string) (string, error) { return 
 
 func TestGetPassesCurrentDoctorToRepository(t *testing.T) {
 	repo := &readStub{}
-	_, err := NewService(repo, llmStub{}).Get(context.Background(), ports.GetExaminationQuery{DoctorID: 77, ExaminationID: uuid.New()})
+	_, err := NewService(repo, llmStub{}, slog.Default()).Get(context.Background(), ports.GetExaminationQuery{DoctorID: 77, ExaminationID: uuid.New()})
 	if !errors.Is(err, ports.ErrExaminationNotFound) || repo.doctorID != 77 {
 		t.Fatalf("doctor=%d err=%v", repo.doctorID, err)
 	}
 }
 
 func TestFindRejectsEmptyKeyword(t *testing.T) {
-	_, err := NewService(&readStub{}, llmStub{}).Find(context.Background(), ports.FindExaminationsQuery{DoctorID: 1, Keyword: "  "})
+	_, err := NewService(&readStub{}, llmStub{}, slog.Default()).Find(context.Background(), ports.FindExaminationsQuery{DoctorID: 1, Keyword: "  "})
 	if !errors.Is(err, ports.ErrEmptyKeyword) {
 		t.Fatalf("err=%v", err)
 	}

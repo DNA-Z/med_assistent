@@ -30,5 +30,11 @@ func (s *Service) Chat(ctx context.Context, q ports.ChatQuery) (string, error) {
 			contextText.WriteString("\n")
 		}
 	}
-	return s.llm.Answer(ctx, contextText.String(), q.Question)
+	s.logger.Info("вызов LLM-клиента для ответа на вопрос", "doctor_id", q.DoctorID, "examinations_count", len(items))
+	answer, err := s.llm.Answer(ctx, contextText.String(), q.Question)
+	if err != nil {
+		return "", err
+	}
+	s.logger.Info("LLM-клиент сформировал ответ", "doctor_id", q.DoctorID)
+	return answer, nil
 }

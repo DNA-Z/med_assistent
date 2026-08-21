@@ -116,6 +116,7 @@ func (w *OutboxWorker) process(
 		if err != nil {
 			return err
 		}
+		w.logger.Debug("outbox-событие обработано", "event_id", event.id, "event_type", event.eventType, "aggregate_id", event.aggregateID)
 
 	}
 
