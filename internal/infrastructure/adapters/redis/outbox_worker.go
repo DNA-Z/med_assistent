@@ -12,6 +12,7 @@ import (
 
 	"github.com/DNA-Z/med_assistent/internal/application/ports"
 	postgresadapter "github.com/DNA-Z/med_assistent/internal/infrastructure/adapters/postgres"
+	"github.com/DNA-Z/med_assistent/internal/infrastructure/adapters/postgres/sqlqueries"
 )
 
 type OutboxWorker struct {
@@ -70,16 +71,7 @@ func (w *OutboxWorker) process(
 
 	repository := postgresadapter.NewQueryRepository(
 		tx,
-		`SELECT
-			id,
-			aggregate_id,
-			event_type,
-			payload
-		FROM outbox_events
-		WHERE processed_at IS NULL
-		ORDER BY created_at
-		FOR UPDATE SKIP LOCKED
-		LIMIT 100`,
+		sqlqueries.OutboxBatch,
 		func(row pgx.CollectableRow) (outboxEvent, error) {
 			var event outboxEvent
 			err := row.Scan(&event.id, &event.aggregateID, &event.eventType, &event.payload)
@@ -108,9 +100,7 @@ func (w *OutboxWorker) process(
 
 		_, err = tx.Exec(
 			ctx,
-			`UPDATE outbox_events
-			 SET processed_at = now()
-			 WHERE id = $1`,
+			sqlqueries.OutboxMarkProcessed,
 			event.id,
 		)
 		if err != nil {
@@ -131,26 +121,7 @@ func (w *OutboxWorker) project(
 
 	err := w.pg.QueryRow(
 		ctx,
-		`SELECT
-			e.id,
-			e.doctor_id,
-			e.patient_id,
-			e.examination_date,
-			e.status,
-			COALESCE(t.text, ''),
-			COALESCE(s.text, ''),
-			COALESCE(d.text, ''),
-			COALESCE(e.error_reason, ''),
-			e.created_at,
-			e.updated_at
-		FROM examinations e
-		LEFT JOIN transcripts t
-			ON t.examination_id = e.id
-		LEFT JOIN summaries s
-			ON s.examination_id = e.id
-		LEFT JOIN diagnoses d
-			ON d.examination_id = e.id
-		WHERE e.id = $1`,
+		sqlqueries.ExaminationProjectionGet,
 		examinationID,
 	).Scan(
 		&item.ID,

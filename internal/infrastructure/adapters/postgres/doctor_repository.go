@@ -6,6 +6,7 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"github.com/DNA-Z/med_assistent/internal/application/ports"
+	"github.com/DNA-Z/med_assistent/internal/infrastructure/adapters/postgres/sqlqueries"
 )
 
 type DoctorRepository struct {
@@ -24,11 +25,7 @@ func (r *DoctorRepository) Exists(
 
 	err := r.store.pool.QueryRow(
 		ctx,
-		`SELECT EXISTS (
-			SELECT 1
-			FROM doctors
-			WHERE telegram_id = $1
-		)`,
+		sqlqueries.DoctorExists,
 		doctorID,
 	).Scan(&exists)
 
@@ -41,12 +38,7 @@ func (r *DoctorRepository) Create(
 ) error {
 	_, err := r.store.pool.Exec(
 		ctx,
-		`INSERT INTO doctors (
-			telegram_id,
-			created_at
-		)
-		VALUES ($1, now())
-		ON CONFLICT (telegram_id) DO NOTHING`,
+		sqlqueries.DoctorCreate,
 		doctorID,
 	)
 

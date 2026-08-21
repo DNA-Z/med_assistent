@@ -109,7 +109,7 @@ func run(logger *slog.Logger) (runErr error) {
 		stop()
 		return fmt.Errorf("run background components: %w", err)
 	}
-	logger.Info("application stopped")
+	logger.Info("приложение остановлено")
 	return nil
 }
 
