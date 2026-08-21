@@ -5,6 +5,7 @@ import (
 	"io"
 )
 
+// SpeechClient абстрагирует поставщика распознавания речи.
 type SpeechClient interface {
 	Transcribe(
 		ctx context.Context,
@@ -13,6 +14,7 @@ type SpeechClient interface {
 	) (string, error)
 }
 
+// LLMClient абстрагирует поставщика языковой модели.
 type LLMClient interface {
 	Summarize(
 		ctx context.Context,

@@ -40,6 +40,8 @@ type Config struct {
 	} `yaml:"processing"`
 }
 
+// NewConfig возвращает конфигурацию с безопасными значениями по умолчанию
+// и применяет переданные функциональные опции.
 func NewConfig(options ...Option[Config]) *Config {
 	c := &Config{}
 	c.Redis.Address = "localhost:6379"
@@ -51,6 +53,7 @@ func NewConfig(options ...Option[Config]) *Config {
 	return c
 }
 
+// ConfigInit загружает YAML-конфигурацию и переопределяет её переменными окружения.
 func (o *Config) ConfigInit() error {
 	cfg, err := o.readConfigFile()
 	if err != nil {

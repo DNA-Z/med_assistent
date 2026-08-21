@@ -7,35 +7,37 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-// Queryer is implemented by both pgxpool.Pool and pgx.Tx.
+// Queryer задаёт общий контракт выполнения запросов для pgxpool.Pool и pgx.Tx.
 type Queryer interface {
 	Query(context.Context, string, ...any) (pgx.Rows, error)
 }
 
-// ScanFunc maps a database row to a typed data-layer model.
+// ScanFunc преобразует строку БД в типизированную модель слоя данных.
 type ScanFunc[T any] func(pgx.CollectableRow) (T, error)
 
-// Result keeps iteration lazy while making query and scan errors explicit.
+// Result хранит очередное значение итератора или ошибку чтения.
 type Result[T any] struct {
 	Value T
 	Err   error
 }
 
-// QueryRepository is a generic read repository for repeated SQL-to-model plumbing.
-// Domain repositories remain specific and express aggregate operations explicitly.
+// QueryRepository устраняет повторяющийся код выборки и преобразования строк БД.
+// Доменные репозитории при этом остаются специализированными и явно выражают
+// операции над агрегатами.
 type QueryRepository[T any] struct {
 	queryer Queryer
 	query   string
 	scan    ScanFunc[T]
 }
 
+// NewQueryRepository создаёт типизированный репозиторий для заданного SQL-запроса.
 func NewQueryRepository[T any](queryer Queryer, query string, scan ScanFunc[T]) *QueryRepository[T] {
 	return &QueryRepository[T]{queryer: queryer, query: query, scan: scan}
 }
 
-// Seq materializes the current database batch, closes the cursor, and then yields
-// typed values. Closing before yield allows consumers to execute updates on the
-// same transaction connection while iterating.
+// Seq загружает текущую пачку, закрывает курсор и затем выдаёт типизированные
+// значения. Закрытие курсора до передачи значений позволяет выполнять UPDATE
+// в той же транзакции во время обхода последовательности.
 func (r *QueryRepository[T]) Seq(ctx context.Context, args ...any) iter.Seq[Result[T]] {
 	return func(yield func(Result[T]) bool) {
 		rows, err := r.queryer.Query(ctx, r.query, args...)

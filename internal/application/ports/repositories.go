@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 )
 
+// ExaminationWriteRepository задаёт атомарные операции write model обследования.
 type ExaminationWriteRepository interface {
 	CreateExamination(
 		ctx context.Context,
@@ -67,11 +68,13 @@ type ExaminationWriteRepository interface {
 	) error
 }
 
+// DoctorWriteRepository управляет регистрацией врачей.
 type DoctorWriteRepository interface {
 	Exists(ctx context.Context, doctorID int64) (bool, error)
 	Create(ctx context.Context, doctorID int64) error
 }
 
+// ExaminationReadRepository читает проекцию обследований с проверкой владельца.
 type ExaminationReadRepository interface {
 	List(ctx context.Context, doctorID int64) ([]ExaminationDTO, error)
 
@@ -100,12 +103,14 @@ type ExaminationReadRepository interface {
 	) ([]ChatContextItem, error)
 }
 
+// ChatContextItem содержит материалы одного обследования для LLM-контекста.
 type ChatContextItem struct {
 	ExaminationID uuid.UUID
 	Transcript    string
 	Summary       string
 }
 
+// ExaminationWriteModel содержит данные первичного сохранения обследования.
 type ExaminationWriteModel struct {
 	ID              uuid.UUID
 	DoctorID        int64
@@ -116,6 +121,7 @@ type ExaminationWriteModel struct {
 	UpdatedAt       time.Time
 }
 
+// ProcessingJobWriteModel содержит данные первичного сохранения фоновой задачи.
 type ProcessingJobWriteModel struct {
 	ID            uuid.UUID
 	ExaminationID uuid.UUID

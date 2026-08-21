@@ -1,9 +1,10 @@
 package config
 
-// Option is a reusable generic functional option for configuration values.
+// Option описывает обобщённую функциональную опцию для настройки значения T.
 type Option[T any] func(*T)
 
-// Apply applies options in declaration order; later options override earlier ones.
+// Apply применяет опции по порядку объявления: последующие опции могут
+// переопределить значения, установленные предыдущими.
 func Apply[T any](target *T, options ...Option[T]) {
 	for _, option := range options {
 		if option != nil {
@@ -12,14 +13,17 @@ func Apply[T any](target *T, options ...Option[T]) {
 	}
 }
 
+// WithDatabaseConnectionString задаёт строку подключения к PostgreSQL.
 func WithDatabaseConnectionString(value string) Option[Config] {
 	return func(config *Config) { config.DBConnectionString = value }
 }
 
+// WithTelegramToken задаёт токен Telegram-бота.
 func WithTelegramToken(value string) Option[Config] {
 	return func(config *Config) { config.Telegram.Token = value }
 }
 
+// WithProcessingWorkers задаёт положительный предел параллельной обработки.
 func WithProcessingWorkers(value int) Option[Config] {
 	return func(config *Config) {
 		if value > 0 {

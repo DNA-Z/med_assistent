@@ -1,0 +1,48 @@
+package main
+
+import (
+	"context"
+	"strings"
+	"testing"
+	"time"
+
+	"github.com/DNA-Z/med_assistent/internal/infrastructure/config"
+	"golang.org/x/sync/errgroup"
+)
+
+func TestValidateConfig(t *testing.T) {
+	cfg := config.NewConfig()
+	cfg.DBConnectionString = "postgres://test"
+	cfg.Redis.Address = "localhost:6379"
+	cfg.Telegram.Token = "token"
+	if err := validateConfig(cfg); err != nil {
+		t.Fatalf("valid config rejected: %v", err)
+	}
+	cfg.Telegram.Token = ""
+	if err := validateConfig(cfg); err == nil || !strings.Contains(err.Error(), "TELEGRAM_TOKEN") {
+		t.Fatalf("err=%v", err)
+	}
+}
+
+func TestWaitForGroupTimesOutDuringShutdown(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	group, _ := errgroup.WithContext(ctx)
+	release := make(chan struct{})
+	group.Go(func() error { <-release; return nil })
+	cancel()
+	err := waitForGroup(ctx, group, time.Millisecond)
+	close(release)
+	if err == nil {
+		t.Fatal("timeout error expected")
+	}
+}
+
+func TestWaitForGroupWaitsForAllWorkers(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	group, groupCtx := errgroup.WithContext(ctx)
+	group.Go(func() error { <-groupCtx.Done(); return nil })
+	cancel()
+	if err := waitForGroup(ctx, group, time.Second); err != nil {
+		t.Fatal(err)
+	}
+}
