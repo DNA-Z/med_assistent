@@ -16,9 +16,10 @@ import (
 )
 
 type OutboxWorker struct {
-	pg     *pgxpool.Pool
-	redis  *Client
-	logger *slog.Logger
+	pg      *pgxpool.Pool
+	redis   *Client
+	logger  *slog.Logger
+	storage ports.ObjectStorage
 }
 
 type outboxEvent struct {
@@ -32,11 +33,13 @@ func NewOutboxWorker(
 	pg *pgxpool.Pool,
 	redisClient *Client,
 	logger *slog.Logger,
+	storage ports.ObjectStorage,
 ) *OutboxWorker {
 	return &OutboxWorker{
-		pg:     pg,
-		redis:  redisClient,
-		logger: logger,
+		pg:      pg,
+		redis:   redisClient,
+		logger:  logger,
+		storage: storage,
 	}
 }
 
@@ -86,12 +89,16 @@ func (w *OutboxWorker) process(
 		event := result.Value
 		if event.eventType == "examination.deleted" {
 			var deleted struct {
-				DoctorID int64 `json:"doctor_id"`
+				DoctorID  int64  `json:"doctor_id"`
+				ObjectKey string `json:"object_key"`
 			}
 			if err := json.Unmarshal(event.payload, &deleted); err != nil {
 				return err
 			}
 			if err := RemoveExamination(ctx, w.redis, deleted.DoctorID, event.aggregateID); err != nil {
+				return err
+			}
+			if err := w.storage.Delete(ctx, deleted.ObjectKey); err != nil {
 				return err
 			}
 		} else if err := w.project(ctx, event.aggregateID); err != nil {

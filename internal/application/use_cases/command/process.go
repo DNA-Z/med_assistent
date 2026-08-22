@@ -3,13 +3,12 @@ package command
 import (
 	"context"
 	"errors"
-	"io"
 	"time"
 
 	"github.com/google/uuid"
 )
 
-func (s *Service) process(examinationID, jobID uuid.UUID, file io.Reader, fileName string, transcript *string) {
+func (s *Service) process(examinationID, jobID uuid.UUID, objectKey, fileName string, transcript *string) {
 	select {
 	case s.sem <- struct{}{}:
 	case <-s.processingCtx.Done():
@@ -27,7 +26,12 @@ func (s *Service) process(examinationID, jobID uuid.UUID, file io.Reader, fileNa
 	if transcript != nil {
 		text = *transcript
 	} else {
-		var err error
+		file, err := s.storage.Open(ctx, objectKey)
+		if err != nil {
+			s.fail(examinationID, jobID, err)
+			return
+		}
+		defer file.Close()
 		s.logger.Info("вызов Speech-клиента", "examination_id", examinationID, "file_name", fileName)
 		text, err = s.speech.Transcribe(ctx, file, fileName)
 		if err != nil {

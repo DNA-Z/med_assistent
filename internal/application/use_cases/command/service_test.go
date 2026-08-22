@@ -37,10 +37,24 @@ func (r *repositoryStub) FailProcessing(context.Context, uuid.UUID, uuid.UUID, s
 	r.failed <- struct{}{}
 	return nil
 }
-func (r *repositoryStub) RetryProcessing(context.Context, int64, uuid.UUID, uuid.UUID, time.Time) (uuid.UUID, string, error) {
-	return uuid.New(), "transcript", nil
+func (r *repositoryStub) RetryProcessing(context.Context, int64, uuid.UUID, uuid.UUID, time.Time) (uuid.UUID, string, string, error) {
+	return uuid.New(), "transcript", "", nil
 }
-func (r *repositoryStub) DeleteExamination(context.Context, int64, uuid.UUID) error { return nil }
+func (r *repositoryStub) DeleteExamination(context.Context, int64, uuid.UUID) error {
+	return nil
+}
+
+type storageStub struct{ data []byte }
+
+func (s *storageStub) Put(_ context.Context, object ports.StoredObject) error {
+	data, err := io.ReadAll(object.Reader)
+	s.data = data
+	return err
+}
+func (s *storageStub) Open(context.Context, string) (io.ReadCloser, error) {
+	return io.NopCloser(strings.NewReader(string(s.data))), nil
+}
+func (s *storageStub) Delete(context.Context, string) error { return nil }
 
 type speechStub struct{ err error }
 
@@ -59,7 +73,7 @@ func (llmStub) Answer(context.Context, string, string) (string, error) { return 
 
 func TestLoadProcessesInBackground(t *testing.T) {
 	repo := &repositoryStub{completed: make(chan struct{}, 1), failed: make(chan struct{}, 1)}
-	service := NewService(context.Background(), repo, speechStub{}, llmStub{}, slog.Default(), 1)
+	service := NewService(context.Background(), repo, speechStub{}, llmStub{}, &storageStub{}, slog.Default(), 1)
 	defer service.Close()
 	id, err := service.Load(context.Background(), ports.LoadExaminationCommand{DoctorID: 42, FileName: "test.txt", File: io.NopCloser(strings.NewReader("patient transcript"))})
 	if err != nil || id == uuid.Nil {
@@ -74,7 +88,7 @@ func TestLoadProcessesInBackground(t *testing.T) {
 
 func TestLoadPersistsExternalClientFailure(t *testing.T) {
 	repo := &repositoryStub{completed: make(chan struct{}, 1), failed: make(chan struct{}, 1)}
-	service := NewService(context.Background(), repo, speechStub{err: errors.New("speech unavailable")}, llmStub{}, slog.Default(), 1)
+	service := NewService(context.Background(), repo, speechStub{err: errors.New("speech unavailable")}, llmStub{}, &storageStub{}, slog.Default(), 1)
 	defer service.Close()
 	_, err := service.Load(context.Background(), ports.LoadExaminationCommand{DoctorID: 42, File: io.NopCloser(strings.NewReader("audio"))})
 	if err != nil {

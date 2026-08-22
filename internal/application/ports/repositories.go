@@ -59,7 +59,7 @@ type ExaminationWriteRepository interface {
 		examinationID uuid.UUID,
 		jobID uuid.UUID,
 		updatedAt time.Time,
-	) (uuid.UUID, string, error)
+	) (uuid.UUID, string, string, error)
 
 	DeleteExamination(
 		ctx context.Context,
@@ -112,13 +112,17 @@ type ChatContextItem struct {
 
 // ExaminationWriteModel содержит данные первичного сохранения обследования.
 type ExaminationWriteModel struct {
-	ID              uuid.UUID
-	DoctorID        int64
-	PatientID       uuid.UUID
-	ExaminationDate time.Time
-	Status          string
-	CreatedAt       time.Time
-	UpdatedAt       time.Time
+	ID               uuid.UUID
+	DoctorID         int64
+	PatientID        uuid.UUID
+	ExaminationDate  time.Time
+	Status           string
+	CreatedAt        time.Time
+	UpdatedAt        time.Time
+	AudioObjectKey   string
+	AudioFileName    string
+	AudioContentType string
+	AudioSize        int64
 }
 
 // ProcessingJobWriteModel содержит данные первичного сохранения фоновой задачи.

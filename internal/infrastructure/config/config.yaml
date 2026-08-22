@@ -6,6 +6,12 @@ redis:
   address: "localhost:6379"
   password: ""
   db: 0
+object_storage:
+  endpoint: "localhost:9000"
+  access_key: "minioadmin"
+  secret_key: "minioadmin"
+  bucket: "medical-audio"
+  use_ssl: false
 speech:
   provider: "mock"
   api_key: ""

@@ -24,8 +24,10 @@ type LoadExaminationCommand struct {
 	DoctorID  int64
 	PatientID uuid.UUID
 
-	FileName string
-	File     io.ReadCloser
+	FileName    string
+	File        io.ReadCloser
+	FileSize    int64
+	ContentType string
 
 	Transcript *string
 }

@@ -17,6 +17,7 @@ import (
 	queryapp "github.com/DNA-Z/med_assistent/internal/application/use_cases/query"
 	"github.com/DNA-Z/med_assistent/internal/infrastructure/adapters/gigachat"
 	"github.com/DNA-Z/med_assistent/internal/infrastructure/adapters/mock"
+	"github.com/DNA-Z/med_assistent/internal/infrastructure/adapters/objectstorage"
 	"github.com/DNA-Z/med_assistent/internal/infrastructure/adapters/postgres"
 	redisadapter "github.com/DNA-Z/med_assistent/internal/infrastructure/adapters/redis"
 	"github.com/DNA-Z/med_assistent/internal/infrastructure/adapters/whisper"
@@ -70,8 +71,13 @@ func run(logger *slog.Logger) (runErr error) {
 	if err != nil {
 		return fmt.Errorf("create external clients: %w", err)
 	}
+	storage, err := objectstorage.NewMinIO(ctx, objectstorage.Config{Endpoint: cfg.ObjectStorage.Endpoint, AccessKey: cfg.ObjectStorage.AccessKey, SecretKey: cfg.ObjectStorage.SecretKey, Bucket: cfg.ObjectStorage.Bucket, UseSSL: cfg.ObjectStorage.UseSSL})
+	if err != nil {
+		return fmt.Errorf("подключиться к объектному хранилищу: %w", err)
+	}
+	logger.Info("подключение к объектному хранилищу установлено", "bucket", cfg.ObjectStorage.Bucket)
 
-	commands := command.NewService(ctx, postgres.NewExaminationWriteRepository(pg), speech, llm, logger, cfg.Processing.Workers)
+	commands := command.NewService(ctx, postgres.NewExaminationWriteRepository(pg), speech, llm, storage, logger, cfg.Processing.Workers)
 	defer func() {
 		runErr = errors.Join(runErr, commands.Close())
 		logger.Info("фоновые задачи обработки остановлены")
@@ -79,7 +85,7 @@ func run(logger *slog.Logger) (runErr error) {
 	queries := queryapp.NewService(redisadapter.NewExaminationReadRepository(rdb), llm, logger)
 	authService := auth.NewService(postgres.NewDoctorRepository(pg), logger)
 
-	outbox := redisadapter.NewOutboxWorker(pg.Pool(), rdb, logger)
+	outbox := redisadapter.NewOutboxWorker(pg.Pool(), rdb, logger, storage)
 	bot, err := telegram.New(telegram.Config{Token: cfg.Telegram.Token, Timeout: cfg.Telegram.Timeout}, telegram.Dependencies{Auth: authService, Commands: commands, Queries: queries, Logger: logger})
 	if err != nil {
 		return fmt.Errorf("create telegram bot: %w", err)
@@ -122,6 +128,9 @@ func validateConfig(cfg *config.Config) error {
 	}
 	if cfg.Telegram.Token == "" {
 		return errors.New("TELEGRAM_TOKEN is required")
+	}
+	if cfg.ObjectStorage.Endpoint == "" || cfg.ObjectStorage.AccessKey == "" || cfg.ObjectStorage.SecretKey == "" || cfg.ObjectStorage.Bucket == "" {
+		return errors.New("не заполнена конфигурация объектного хранилища")
 	}
 	return nil
 }

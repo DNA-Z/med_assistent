@@ -21,6 +21,13 @@ type Config struct {
 		Password string `yaml:"password"`
 		DB       int    `yaml:"db"`
 	} `yaml:"redis"`
+	ObjectStorage struct {
+		Endpoint  string `yaml:"endpoint"`
+		AccessKey string `yaml:"access_key"`
+		SecretKey string `yaml:"secret_key"`
+		Bucket    string `yaml:"bucket"`
+		UseSSL    bool   `yaml:"use_ssl"`
+	} `yaml:"object_storage"`
 	Speech struct {
 		Provider string `yaml:"provider"`
 		APIKey   string `yaml:"api_key"`
@@ -45,6 +52,8 @@ type Config struct {
 func NewConfig(options ...Option[Config]) *Config {
 	c := &Config{}
 	c.Redis.Address = "localhost:6379"
+	c.ObjectStorage.Endpoint = "localhost:9000"
+	c.ObjectStorage.Bucket = "medical-audio"
 	c.Telegram.Timeout = 10
 	c.Speech.Provider, c.Speech.Timeout = "mock", 60
 	c.LLM.Provider, c.LLM.Model, c.LLM.Timeout = "mock", "GigaChat-2", 60
@@ -101,6 +110,10 @@ func (o *Config) applyEnvironment() {
 	set("DATABASE_URL", &o.DBConnectionString)
 	set("REDIS_ADDRESS", &o.Redis.Address)
 	set("REDIS_PASSWORD", &o.Redis.Password)
+	set("S3_ENDPOINT", &o.ObjectStorage.Endpoint)
+	set("S3_ACCESS_KEY", &o.ObjectStorage.AccessKey)
+	set("S3_SECRET_KEY", &o.ObjectStorage.SecretKey)
+	set("S3_BUCKET", &o.ObjectStorage.Bucket)
 	set("TELEGRAM_TOKEN", &o.Telegram.Token)
 	set("SPEECH_PROVIDER", &o.Speech.Provider)
 	set("SPEECH_API_KEY", &o.Speech.APIKey)
@@ -109,6 +122,11 @@ func (o *Config) applyEnvironment() {
 	if value := os.Getenv("REDIS_DB"); value != "" {
 		if n, err := strconv.Atoi(value); err == nil {
 			o.Redis.DB = n
+		}
+	}
+	if value := os.Getenv("S3_USE_SSL"); value != "" {
+		if enabled, err := strconv.ParseBool(value); err == nil {
+			o.ObjectStorage.UseSSL = enabled
 		}
 	}
 }

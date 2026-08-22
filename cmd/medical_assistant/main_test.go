@@ -15,6 +15,10 @@ func TestValidateConfig(t *testing.T) {
 	cfg.DBConnectionString = "postgres://test"
 	cfg.Redis.Address = "localhost:6379"
 	cfg.Telegram.Token = "token"
+	cfg.ObjectStorage.Endpoint = "localhost:9000"
+	cfg.ObjectStorage.AccessKey = "access"
+	cfg.ObjectStorage.SecretKey = "secret"
+	cfg.ObjectStorage.Bucket = "audio"
 	if err := validateConfig(cfg); err != nil {
 		t.Fatalf("valid config rejected: %v", err)
 	}

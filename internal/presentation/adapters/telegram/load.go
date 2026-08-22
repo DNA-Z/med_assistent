@@ -30,6 +30,7 @@ func (b *Bot) handleVoice(c telebot.Context) error {
 		c,
 		c.Message().Voice.FileID,
 		"voice.ogg",
+		c.Message().Voice.MIME,
 	)
 }
 
@@ -40,6 +41,7 @@ func (b *Bot) handleAudio(c telebot.Context) error {
 		c,
 		audio.FileID,
 		audio.FileName,
+		audio.MIME,
 	)
 }
 
@@ -47,6 +49,7 @@ func (b *Bot) processTelegramFile(
 	c telebot.Context,
 	fileID string,
 	fileName string,
+	contentType string,
 ) error {
 	file := &telebot.File{
 		FileID: fileID,
@@ -103,9 +106,11 @@ func (b *Bot) processTelegramFile(
 	id, err := b.commands.Load(
 		context.Background(),
 		ports.LoadExaminationCommand{
-			DoctorID: c.Sender().ID,
-			File:     io.NopCloser(bytes.NewReader(data)),
-			FileName: fileName,
+			DoctorID:    c.Sender().ID,
+			File:        io.NopCloser(bytes.NewReader(data)),
+			FileName:    fileName,
+			FileSize:    int64(len(data)),
+			ContentType: contentType,
 		},
 	)
 	if err != nil {

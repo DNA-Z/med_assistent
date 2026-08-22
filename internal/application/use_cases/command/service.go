@@ -14,6 +14,7 @@ type Service struct {
 	writeRepo ports.ExaminationWriteRepository
 	speech    ports.SpeechClient
 	llm       ports.LLMClient
+	storage   ports.ObjectStorage
 	logger    *slog.Logger
 
 	processingCtx    context.Context
@@ -24,12 +25,27 @@ type Service struct {
 
 // NewService создаёт фасад команд и ограничивает число одновременно
 // обрабатываемых обследований значением maxParallel.
-func NewService(parent context.Context, writeRepo ports.ExaminationWriteRepository, speech ports.SpeechClient, llm ports.LLMClient, logger *slog.Logger, maxParallel int) *Service {
+func NewService(parent context.Context,
+	writeRepo ports.ExaminationWriteRepository,
+	speech ports.SpeechClient,
+	llm ports.LLMClient,
+	storage ports.ObjectStorage,
+	logger *slog.Logger,
+	maxParallel int) *Service {
 	if maxParallel <= 0 {
 		maxParallel = 1
 	}
 	ctx, cancel := context.WithCancel(parent)
-	return &Service{writeRepo: writeRepo, speech: speech, llm: llm, logger: logger, processingCtx: ctx, processingCancel: cancel, sem: make(chan struct{}, maxParallel)}
+	return &Service{
+		writeRepo:        writeRepo,
+		speech:           speech,
+		llm:              llm,
+		storage:          storage,
+		logger:           logger,
+		processingCtx:    ctx,
+		processingCancel: cancel,
+		sem:              make(chan struct{}, maxParallel),
+	}
 }
 
 // Close запрещает запуск новой фоновой работы, отменяет текущую и ожидает
