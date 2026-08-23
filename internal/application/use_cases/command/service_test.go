@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -25,6 +26,32 @@ type blockingRepository struct {
 	started chan struct{}
 	release chan struct{}
 	once    sync.Once
+}
+
+type concurrencyRepository struct {
+	*repositoryStub
+	active  atomic.Int32
+	maximum atomic.Int32
+	started chan struct{}
+	release chan struct{}
+}
+
+func (r *concurrencyRepository) StartProcessing(ctx context.Context, _ uuid.UUID, _ uuid.UUID, _ time.Time, _ int) error {
+	current := r.active.Add(1)
+	defer r.active.Add(-1)
+	for {
+		maximum := r.maximum.Load()
+		if current <= maximum || r.maximum.CompareAndSwap(maximum, current) {
+			break
+		}
+	}
+	r.started <- struct{}{}
+	select {
+	case <-r.release:
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
 }
 
 func (r *blockingRepository) StartProcessing(ctx context.Context, _ uuid.UUID, _ uuid.UUID, _ time.Time, _ int) error {
@@ -176,5 +203,64 @@ func TestServiceRestoresPendingTaskAfterStartup(t *testing.T) {
 	case <-repo.completed:
 	case <-time.After(time.Second):
 		t.Fatal("восстановленное задание не завершено")
+	}
+}
+
+func TestWorkerPoolLimitsMaximumParallelism(t *testing.T) {
+	const (
+		workers   = 3
+		taskCount = 12
+	)
+	baseRepo := &repositoryStub{
+		completed: make(chan struct{}, taskCount),
+		failed:    make(chan struct{}, taskCount),
+	}
+	repo := &concurrencyRepository{
+		repositoryStub: baseRepo,
+		started:        make(chan struct{}, taskCount),
+		release:        make(chan struct{}),
+	}
+	service := NewService(context.Background(), repo, speechStub{}, llmStub{}, &storageStub{}, slog.Default(), workers, taskCount)
+	var releaseOnce sync.Once
+	t.Cleanup(func() {
+		releaseOnce.Do(func() { close(repo.release) })
+		if err := service.Close(); err != nil {
+			t.Errorf("Close(): %v", err)
+		}
+	})
+
+	transcript := "тестовая транскрипция"
+	for range taskCount {
+		err := service.enqueue(processingTask{
+			examinationID: uuid.New(),
+			jobID:         uuid.New(),
+			transcript:    &transcript,
+		})
+		if err != nil {
+			t.Fatalf("задание не принято: %v", err)
+		}
+	}
+
+	for range workers {
+		select {
+		case <-repo.started:
+		case <-time.After(time.Second):
+			t.Fatal("не все worker'ы начали обработку")
+		}
+	}
+	if got := repo.maximum.Load(); got != workers {
+		t.Fatalf("максимальный параллелизм = %d, ожидалось %d", got, workers)
+	}
+
+	releaseOnce.Do(func() { close(repo.release) })
+	for range taskCount {
+		select {
+		case <-repo.completed:
+		case <-time.After(time.Second):
+			t.Fatal("не все задания завершились")
+		}
+	}
+	if got := repo.maximum.Load(); got > workers {
+		t.Fatalf("предел параллелизма нарушен: %d > %d", got, workers)
 	}
 }

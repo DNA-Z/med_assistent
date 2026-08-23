@@ -50,3 +50,12 @@ func TestWaitForGroupWaitsForAllWorkers(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestClientsRequireOpenAIAPIKey(t *testing.T) {
+	cfg := config.NewConfig()
+	cfg.LLM.Provider = "openai"
+
+	if _, _, err := clients(cfg); err == nil || !strings.Contains(err.Error(), "OPENAI_API_KEY") {
+		t.Fatalf("err=%v", err)
+	}
+}

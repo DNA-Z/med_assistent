@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 
 	"github.com/DNA-Z/med_assistent/internal/application/ports"
 )
@@ -26,6 +27,7 @@ func NewClient(
 	httpClient *http.Client,
 	token string,
 	model string,
+	baseURL string,
 ) *Client {
 	if httpClient == nil {
 		httpClient = http.DefaultClient
@@ -34,12 +36,16 @@ func NewClient(
 	if model == "" {
 		model = "GigaChat-2"
 	}
+	if baseURL == "" {
+		baseURL = defaultBaseURL
+	}
+	baseURL = strings.TrimRight(baseURL, "/")
 
 	return &Client{
 		httpClient: httpClient,
 		token:      token,
 		model:      model,
-		baseURL:    defaultBaseURL,
+		baseURL:    baseURL,
 	}
 }
 

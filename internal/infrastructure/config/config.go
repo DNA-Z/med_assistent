@@ -9,6 +9,8 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+const defaultOpenAIModel = "gpt-5.6"
+
 // Config представляет структуру конфигурационного файла.
 type Config struct {
 	DBConnectionString string `yaml:"db_connection_string"`
@@ -36,10 +38,17 @@ type Config struct {
 	} `yaml:"speech"`
 	LLM struct {
 		Provider string `yaml:"provider"`
-		Token    string `yaml:"token"`
-		Model    string `yaml:"model"`
-		BaseURL  string `yaml:"base_url"`
 		Timeout  int    `yaml:"timeout"`
+		GigaChat struct {
+			Token   string `yaml:"token"`
+			Model   string `yaml:"model"`
+			BaseURL string `yaml:"base_url"`
+		} `yaml:"gigachat"`
+		OpenAI struct {
+			APIKey  string `yaml:"api_key"`
+			Model   string `yaml:"model"`
+			BaseURL string `yaml:"base_url"`
+		} `yaml:"openai"`
 	} `yaml:"llm"`
 	Processing struct {
 		Workers   int `yaml:"workers"`
@@ -57,7 +66,9 @@ func NewConfig(options ...Option[Config]) *Config {
 	c.ObjectStorage.Bucket = "medical-audio"
 	c.Telegram.Timeout = 10
 	c.Speech.Provider, c.Speech.Timeout = "mock", 60
-	c.LLM.Provider, c.LLM.Model, c.LLM.Timeout = "mock", "GigaChat-2", 60
+	c.LLM.Provider, c.LLM.Timeout = "mock", 60
+	c.LLM.GigaChat.Model = "GigaChat-2"
+	c.LLM.OpenAI.Model = defaultOpenAIModel
 	c.Processing.Workers, c.Processing.QueueSize, c.Processing.Timeout = 4, 100, 900
 	Apply(c, options...)
 	return c
@@ -119,7 +130,12 @@ func (o *Config) applyEnvironment() {
 	set("SPEECH_PROVIDER", &o.Speech.Provider)
 	set("SPEECH_API_KEY", &o.Speech.APIKey)
 	set("LLM_PROVIDER", &o.LLM.Provider)
-	set("GIGACHAT_TOKEN", &o.LLM.Token)
+	set("GIGACHAT_TOKEN", &o.LLM.GigaChat.Token)
+	set("GIGACHAT_MODEL", &o.LLM.GigaChat.Model)
+	set("GIGACHAT_BASE_URL", &o.LLM.GigaChat.BaseURL)
+	set("OPENAI_API_KEY", &o.LLM.OpenAI.APIKey)
+	set("OPENAI_MODEL", &o.LLM.OpenAI.Model)
+	set("OPENAI_BASE_URL", &o.LLM.OpenAI.BaseURL)
 	if value := os.Getenv("REDIS_DB"); value != "" {
 		if n, err := strconv.Atoi(value); err == nil {
 			o.Redis.DB = n

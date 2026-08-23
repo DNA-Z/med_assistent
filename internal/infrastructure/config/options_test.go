@@ -32,3 +32,26 @@ func TestGenericApplySupportsAnyConfigurationType(t *testing.T) {
 		t.Fatal("generic option was not applied")
 	}
 }
+
+func TestOpenAIConfigurationFromEnvironment(t *testing.T) {
+	t.Setenv("LLM_PROVIDER", "openai")
+	t.Setenv("OPENAI_API_KEY", "test-key")
+	t.Setenv("OPENAI_MODEL", "gpt-test")
+	t.Setenv("OPENAI_BASE_URL", "https://example.test/v1")
+
+	config := NewConfig()
+	config.applyEnvironment()
+
+	if config.LLM.Provider != "openai" {
+		t.Fatalf("provider=%q", config.LLM.Provider)
+	}
+	if config.LLM.OpenAI.APIKey != "test-key" {
+		t.Fatalf("api_key=%q", config.LLM.OpenAI.APIKey)
+	}
+	if config.LLM.OpenAI.Model != "gpt-test" {
+		t.Fatalf("model=%q", config.LLM.OpenAI.Model)
+	}
+	if config.LLM.OpenAI.BaseURL != "https://example.test/v1" {
+		t.Fatalf("base_url=%q", config.LLM.OpenAI.BaseURL)
+	}
+}

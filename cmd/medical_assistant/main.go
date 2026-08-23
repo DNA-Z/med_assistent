@@ -18,6 +18,7 @@ import (
 	"github.com/DNA-Z/med_assistent/internal/infrastructure/adapters/gigachat"
 	"github.com/DNA-Z/med_assistent/internal/infrastructure/adapters/mock"
 	"github.com/DNA-Z/med_assistent/internal/infrastructure/adapters/objectstorage"
+	openaiadapter "github.com/DNA-Z/med_assistent/internal/infrastructure/adapters/openai"
 	"github.com/DNA-Z/med_assistent/internal/infrastructure/adapters/postgres"
 	redisadapter "github.com/DNA-Z/med_assistent/internal/infrastructure/adapters/redis"
 	"github.com/DNA-Z/med_assistent/internal/infrastructure/adapters/whisper"
@@ -168,7 +169,15 @@ func clients(cfg *config.Config) (ports.SpeechClient, ports.LLMClient, error) {
 		return nil, nil, fmt.Errorf("unknown speech provider %q", cfg.Speech.Provider)
 	}
 	if cfg.LLM.Provider == "gigachat" {
-		llm = gigachat.NewClient(&http.Client{Timeout: time.Duration(cfg.LLM.Timeout) * time.Second}, cfg.LLM.Token, cfg.LLM.Model)
+		if cfg.LLM.GigaChat.Token == "" {
+			return nil, nil, errors.New("GIGACHAT_TOKEN is required for gigachat provider")
+		}
+		llm = gigachat.NewClient(&http.Client{Timeout: time.Duration(cfg.LLM.Timeout) * time.Second}, cfg.LLM.GigaChat.Token, cfg.LLM.GigaChat.Model, cfg.LLM.GigaChat.BaseURL)
+	} else if cfg.LLM.Provider == "openai" {
+		if cfg.LLM.OpenAI.APIKey == "" {
+			return nil, nil, errors.New("OPENAI_API_KEY is required for openai provider")
+		}
+		llm = openaiadapter.NewClient(&http.Client{Timeout: time.Duration(cfg.LLM.Timeout) * time.Second}, cfg.LLM.OpenAI.APIKey, cfg.LLM.OpenAI.Model, cfg.LLM.OpenAI.BaseURL)
 	} else if cfg.LLM.Provider != "mock" {
 		return nil, nil, fmt.Errorf("unknown llm provider %q", cfg.LLM.Provider)
 	}
