@@ -23,4 +23,5 @@ llm:
   timeout: 60
 processing:
   workers: 4
+  queue_size: 100
   timeout: 900

@@ -7,6 +7,7 @@ func TestGenericFunctionalOptions(t *testing.T) {
 		WithDatabaseConnectionString("postgres://test"),
 		WithTelegramToken("token"),
 		WithProcessingWorkers(8),
+		WithProcessingQueueSize(50),
 	)
 
 	if config.DBConnectionString != "postgres://test" {
@@ -17,6 +18,9 @@ func TestGenericFunctionalOptions(t *testing.T) {
 	}
 	if config.Processing.Workers != 8 {
 		t.Fatalf("workers=%d", config.Processing.Workers)
+	}
+	if config.Processing.QueueSize != 50 {
+		t.Fatalf("queue_size=%d", config.Processing.QueueSize)
 	}
 }
 

@@ -13,6 +13,7 @@ func (s *Service) Retry(ctx context.Context, cmd ports.RetryExaminationCommand) 
 	if cmd.DoctorID == 0 || cmd.ExaminationID == uuid.Nil {
 		return ports.ErrInvalidCommand
 	}
+
 	jobID, transcript, objectKey, err := s.writeRepo.RetryProcessing(ctx, cmd.DoctorID, cmd.ExaminationID, uuid.New(), time.Now().UTC())
 	if err != nil {
 		return err
@@ -21,13 +22,20 @@ func (s *Service) Retry(ctx context.Context, cmd ports.RetryExaminationCommand) 
 		return ports.ErrFileRequired
 	}
 	s.logger.Info("повторная обработка поставлена в очередь", "doctor_id", cmd.DoctorID, "examination_id", cmd.ExaminationID, "job_id", jobID)
-	s.processing.Go(func() error {
-		var savedTranscript *string
-		if strings.TrimSpace(transcript) != "" {
-			savedTranscript = &transcript
-		}
-		s.process(cmd.ExaminationID, jobID, objectKey, "", savedTranscript)
-		return nil
-	})
+
+	var savedTranscript *string
+	if strings.TrimSpace(transcript) != "" {
+		savedTranscript = &transcript
+	}
+	if err := s.enqueue(
+		processingTask{
+			examinationID: cmd.ExaminationID,
+			jobID:         jobID,
+			objectKey:     objectKey,
+			transcript:    savedTranscript,
+		}); err != nil {
+		s.fail(cmd.ExaminationID, jobID, err)
+		return err
+	}
 	return nil
 }

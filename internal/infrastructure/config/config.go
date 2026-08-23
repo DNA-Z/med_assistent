@@ -42,8 +42,9 @@ type Config struct {
 		Timeout  int    `yaml:"timeout"`
 	} `yaml:"llm"`
 	Processing struct {
-		Workers int `yaml:"workers"`
-		Timeout int `yaml:"timeout"`
+		Workers   int `yaml:"workers"`
+		QueueSize int `yaml:"queue_size"`
+		Timeout   int `yaml:"timeout"`
 	} `yaml:"processing"`
 }
 
@@ -57,7 +58,7 @@ func NewConfig(options ...Option[Config]) *Config {
 	c.Telegram.Timeout = 10
 	c.Speech.Provider, c.Speech.Timeout = "mock", 60
 	c.LLM.Provider, c.LLM.Model, c.LLM.Timeout = "mock", "GigaChat-2", 60
-	c.Processing.Workers, c.Processing.Timeout = 4, 900
+	c.Processing.Workers, c.Processing.QueueSize, c.Processing.Timeout = 4, 100, 900
 	Apply(c, options...)
 	return c
 }
@@ -127,6 +128,16 @@ func (o *Config) applyEnvironment() {
 	if value := os.Getenv("S3_USE_SSL"); value != "" {
 		if enabled, err := strconv.ParseBool(value); err == nil {
 			o.ObjectStorage.UseSSL = enabled
+		}
+	}
+	if value := os.Getenv("PROCESSING_WORKERS"); value != "" {
+		if n, err := strconv.Atoi(value); err == nil && n > 0 {
+			o.Processing.Workers = n
+		}
+	}
+	if value := os.Getenv("PROCESSING_QUEUE_SIZE"); value != "" {
+		if n, err := strconv.Atoi(value); err == nil && n > 0 {
+			o.Processing.QueueSize = n
 		}
 	}
 }

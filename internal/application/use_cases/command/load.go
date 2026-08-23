@@ -28,7 +28,12 @@ func (s *Service) Load(ctx context.Context, cmd ports.LoadExaminationCommand) (u
 	if cmd.File != nil {
 		extension := strings.ToLower(filepath.Ext(cmd.FileName))
 		objectKey = fmt.Sprintf("examinations/%s/source%s", examinationID, extension)
-		if err := s.storage.Put(ctx, ports.StoredObject{Key: objectKey, Reader: cmd.File, Size: cmd.FileSize, ContentType: cmd.ContentType}); err != nil {
+		if err := s.storage.Put(ctx, ports.StoredObject{
+			Key:         objectKey,
+			Reader:      cmd.File,
+			Size:        cmd.FileSize,
+			ContentType: cmd.ContentType,
+		}); err != nil {
 			_ = cmd.File.Close()
 			return uuid.Nil, err
 		}
@@ -43,8 +48,26 @@ func (s *Service) Load(ctx context.Context, cmd ports.LoadExaminationCommand) (u
 		return uuid.Nil, err
 	}
 	err = s.writeRepo.CreateExamination(ctx,
-		ports.ExaminationWriteModel{ID: examination.ID(), DoctorID: cmd.DoctorID, PatientID: cmd.PatientID, ExaminationDate: examination.ExaminationDate(), Status: examination.Status().String(), CreatedAt: examination.CreatedAt(), UpdatedAt: examination.UpdatedAt(), AudioObjectKey: objectKey, AudioFileName: cmd.FileName, AudioContentType: cmd.ContentType, AudioSize: cmd.FileSize},
-		ports.ProcessingJobWriteModel{ID: job.ID(), ExaminationID: job.ExaminationID(), Status: job.Status().String(), Attempt: job.Attempt(), CreatedAt: job.CreatedAt(), UpdatedAt: job.UpdatedAt()},
+		ports.ExaminationWriteModel{
+			ID:               examination.ID(),
+			DoctorID:         cmd.DoctorID,
+			PatientID:        cmd.PatientID,
+			ExaminationDate:  examination.ExaminationDate(),
+			Status:           examination.Status().String(),
+			CreatedAt:        examination.CreatedAt(),
+			UpdatedAt:        examination.UpdatedAt(),
+			AudioObjectKey:   objectKey,
+			AudioFileName:    cmd.FileName,
+			AudioContentType: cmd.ContentType,
+			AudioSize:        cmd.FileSize},
+
+		ports.ProcessingJobWriteModel{
+			ID:            job.ID(),
+			ExaminationID: job.ExaminationID(),
+			Status:        job.Status().String(),
+			Attempt:       job.Attempt(),
+			CreatedAt:     job.CreatedAt(),
+			UpdatedAt:     job.UpdatedAt()},
 	)
 	if err != nil {
 		if objectKey != "" {
@@ -62,11 +85,20 @@ func (s *Service) Load(ctx context.Context, cmd ports.LoadExaminationCommand) (u
 		"file_name", cmd.FileName,
 	)
 	transcript := cmd.Transcript
-	s.processing.Go(func() error {
-		s.process(examinationID, jobID, objectKey, cmd.FileName, transcript)
-		return nil
-	})
+	if err := s.enqueue(
+		processingTask{
+			examinationID: examinationID,
+			jobID:         jobID,
+			objectKey:     objectKey,
+			fileName:      cmd.FileName,
+			transcript:    transcript,
+		}); err != nil {
+		s.fail(examinationID, jobID, err)
+		return examinationID, err
+	}
 	return examinationID, nil
 }
 
-func doctorIdentity(id int64) string { return time.Unix(id, 0).UTC().Format(time.RFC3339Nano) }
+func doctorIdentity(id int64) string {
+	return time.Unix(id, 0).UTC().Format(time.RFC3339Nano)
+}

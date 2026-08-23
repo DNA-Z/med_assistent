@@ -8,13 +8,8 @@ import (
 	"github.com/google/uuid"
 )
 
-func (s *Service) process(examinationID, jobID uuid.UUID, objectKey, fileName string, transcript *string) {
-	select {
-	case s.sem <- struct{}{}:
-	case <-s.processingCtx.Done():
-		return
-	}
-	defer func() { <-s.sem }()
+func (s *Service) process(task processingTask) {
+	examinationID, jobID := task.examinationID, task.jobID
 	ctx, cancel := context.WithTimeout(s.processingCtx, 15*time.Minute)
 	defer cancel()
 	if err := s.writeRepo.StartProcessing(ctx, examinationID, jobID, time.Now().UTC(), 1); err != nil {
@@ -22,18 +17,19 @@ func (s *Service) process(examinationID, jobID uuid.UUID, objectKey, fileName st
 		return
 	}
 	s.logger.Info("обработка обследования начата", "examination_id", examinationID, "job_id", jobID, "status", "processing")
+
 	var text string
-	if transcript != nil {
-		text = *transcript
+	if task.transcript != nil {
+		text = *task.transcript
 	} else {
-		file, err := s.storage.Open(ctx, objectKey)
+		file, err := s.storage.Open(ctx, task.objectKey)
 		if err != nil {
 			s.fail(examinationID, jobID, err)
 			return
 		}
 		defer file.Close()
-		s.logger.Info("вызов Speech-клиента", "examination_id", examinationID, "file_name", fileName)
-		text, err = s.speech.Transcribe(ctx, file, fileName)
+		s.logger.Info("вызов Speech-клиента", "examination_id", examinationID, "file_name", task.fileName)
+		text, err = s.speech.Transcribe(ctx, file, task.fileName)
 		if err != nil {
 			s.fail(examinationID, jobID, err)
 			return
@@ -50,17 +46,20 @@ func (s *Service) process(examinationID, jobID uuid.UUID, objectKey, fileName st
 	}
 	s.logger.Info("транскрипция сохранена", "examination_id", examinationID, "status", "transcribed")
 	s.logger.Info("вызов LLM-клиента для создания выжимки", "examination_id", examinationID)
+
 	summary, err := s.llm.Summarize(ctx, text)
 	if err != nil {
 		s.fail(examinationID, jobID, err)
 		return
 	}
 	s.logger.Info("LLM-клиент создал выжимку", "examination_id", examinationID)
+
 	if err := s.writeRepo.SaveSummary(ctx, examinationID, summary, time.Now().UTC()); err != nil {
 		s.fail(examinationID, jobID, err)
 		return
 	}
 	s.logger.Info("краткая выжимка сохранена", "examination_id", examinationID, "status", "summarized")
+
 	if err := s.writeRepo.CompleteProcessing(ctx, examinationID, jobID, time.Now().UTC()); err != nil {
 		s.logger.Error("failed to complete processing", "examination_id", examinationID, "error", err)
 		return

@@ -31,3 +31,12 @@ func WithProcessingWorkers(value int) Option[Config] {
 		}
 	}
 }
+
+// WithProcessingQueueSize задаёт положительную вместимость очереди обработки.
+func WithProcessingQueueSize(value int) Option[Config] {
+	return func(config *Config) {
+		if value > 0 {
+			config.Processing.QueueSize = value
+		}
+	}
+}

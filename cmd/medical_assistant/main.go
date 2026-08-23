@@ -77,7 +77,7 @@ func run(logger *slog.Logger) (runErr error) {
 	}
 	logger.Info("подключение к объектному хранилищу установлено", "bucket", cfg.ObjectStorage.Bucket)
 
-	commands := command.NewService(ctx, postgres.NewExaminationWriteRepository(pg), speech, llm, storage, logger, cfg.Processing.Workers)
+	commands := command.NewService(ctx, postgres.NewExaminationWriteRepository(pg), speech, llm, storage, logger, cfg.Processing.Workers, cfg.Processing.QueueSize)
 	defer func() {
 		runErr = errors.Join(runErr, commands.Close())
 		logger.Info("фоновые задачи обработки остановлены")
@@ -110,7 +110,7 @@ func run(logger *slog.Logger) (runErr error) {
 		return nil
 	})
 
-	logger.Info("application started", "workers", cfg.Processing.Workers)
+	logger.Info("приложение запущено", "workers", cfg.Processing.Workers, "queue_size", cfg.Processing.QueueSize)
 	if err := waitForGroup(ctx, group, 10*time.Second); err != nil {
 		stop()
 		return fmt.Errorf("run background components: %w", err)
@@ -131,6 +131,12 @@ func validateConfig(cfg *config.Config) error {
 	}
 	if cfg.ObjectStorage.Endpoint == "" || cfg.ObjectStorage.AccessKey == "" || cfg.ObjectStorage.SecretKey == "" || cfg.ObjectStorage.Bucket == "" {
 		return errors.New("не заполнена конфигурация объектного хранилища")
+	}
+	if cfg.Processing.Workers <= 0 {
+		return errors.New("количество worker'ов обработки должно быть положительным")
+	}
+	if cfg.Processing.QueueSize <= 0 {
+		return errors.New("размер очереди обработки должен быть положительным")
 	}
 	return nil
 }

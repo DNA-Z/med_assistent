@@ -10,4 +10,5 @@ var (
 	ErrEmptyKeyword        = errors.New("keyword cannot be empty")
 	ErrFileRequired        = errors.New("file or transcript is required")
 	ErrPatientRequired     = errors.New("patient is required")
+	ErrProcessingQueueFull = errors.New("processing queue is full")
 )

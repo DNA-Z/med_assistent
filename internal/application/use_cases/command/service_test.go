@@ -19,6 +19,23 @@ type repositoryStub struct {
 	completed, failed chan struct{}
 }
 
+type blockingRepository struct {
+	*repositoryStub
+	started chan struct{}
+	release chan struct{}
+	once    sync.Once
+}
+
+func (r *blockingRepository) StartProcessing(ctx context.Context, _ uuid.UUID, _ uuid.UUID, _ time.Time, _ int) error {
+	r.once.Do(func() { close(r.started) })
+	select {
+	case <-r.release:
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+}
+
 func (r *repositoryStub) CreateExamination(context.Context, ports.ExaminationWriteModel, ports.ProcessingJobWriteModel) error {
 	return nil
 }
@@ -73,7 +90,7 @@ func (llmStub) Answer(context.Context, string, string) (string, error) { return 
 
 func TestLoadProcessesInBackground(t *testing.T) {
 	repo := &repositoryStub{completed: make(chan struct{}, 1), failed: make(chan struct{}, 1)}
-	service := NewService(context.Background(), repo, speechStub{}, llmStub{}, &storageStub{}, slog.Default(), 1)
+	service := NewService(context.Background(), repo, speechStub{}, llmStub{}, &storageStub{}, slog.Default(), 1, 1)
 	defer service.Close()
 	id, err := service.Load(context.Background(), ports.LoadExaminationCommand{DoctorID: 42, FileName: "test.txt", File: io.NopCloser(strings.NewReader("patient transcript"))})
 	if err != nil || id == uuid.Nil {
@@ -88,7 +105,7 @@ func TestLoadProcessesInBackground(t *testing.T) {
 
 func TestLoadPersistsExternalClientFailure(t *testing.T) {
 	repo := &repositoryStub{completed: make(chan struct{}, 1), failed: make(chan struct{}, 1)}
-	service := NewService(context.Background(), repo, speechStub{err: errors.New("speech unavailable")}, llmStub{}, &storageStub{}, slog.Default(), 1)
+	service := NewService(context.Background(), repo, speechStub{err: errors.New("speech unavailable")}, llmStub{}, &storageStub{}, slog.Default(), 1, 1)
 	defer service.Close()
 	_, err := service.Load(context.Background(), ports.LoadExaminationCommand{DoctorID: 42, File: io.NopCloser(strings.NewReader("audio"))})
 	if err != nil {
@@ -99,4 +116,35 @@ func TestLoadPersistsExternalClientFailure(t *testing.T) {
 	case <-time.After(time.Second):
 		t.Fatal("failure was not persisted")
 	}
+}
+
+func TestWorkerPoolRejectsTaskWhenBoundedQueueIsFull(t *testing.T) {
+	baseRepo := &repositoryStub{completed: make(chan struct{}, 2), failed: make(chan struct{}, 2)}
+	repo := &blockingRepository{
+		repositoryStub: baseRepo,
+		started:        make(chan struct{}),
+		release:        make(chan struct{}),
+	}
+	service := NewService(context.Background(), repo, speechStub{}, llmStub{}, &storageStub{}, slog.Default(), 1, 1)
+	defer service.Close()
+	transcript := "тестовая транскрипция"
+	newTask := func() processingTask {
+		return processingTask{examinationID: uuid.New(), jobID: uuid.New(), transcript: &transcript}
+	}
+
+	if err := service.enqueue(newTask()); err != nil {
+		t.Fatalf("первое задание не принято: %v", err)
+	}
+	select {
+	case <-repo.started:
+	case <-time.After(time.Second):
+		t.Fatal("worker не начал обработку")
+	}
+	if err := service.enqueue(newTask()); err != nil {
+		t.Fatalf("задание не добавлено в свободную очередь: %v", err)
+	}
+	if err := service.enqueue(newTask()); !errors.Is(err, ports.ErrProcessingQueueFull) {
+		t.Fatalf("ожидалась ошибка заполненной очереди, получено: %v", err)
+	}
+	close(repo.release)
 }
