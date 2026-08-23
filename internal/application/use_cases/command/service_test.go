@@ -17,6 +17,7 @@ import (
 type repositoryStub struct {
 	mu                sync.Mutex
 	completed, failed chan struct{}
+	pending           []ports.PendingProcessingTask
 }
 
 type blockingRepository struct {
@@ -59,6 +60,13 @@ func (r *repositoryStub) RetryProcessing(context.Context, int64, uuid.UUID, uuid
 }
 func (r *repositoryStub) DeleteExamination(context.Context, int64, uuid.UUID) error {
 	return nil
+}
+func (r *repositoryStub) ClaimPendingProcessing(context.Context, time.Time, time.Time, int) ([]ports.PendingProcessingTask, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	tasks := r.pending
+	r.pending = nil
+	return tasks, nil
 }
 
 type storageStub struct{ data []byte }
@@ -147,4 +155,26 @@ func TestWorkerPoolRejectsTaskWhenBoundedQueueIsFull(t *testing.T) {
 		t.Fatalf("ожидалась ошибка заполненной очереди, получено: %v", err)
 	}
 	close(repo.release)
+}
+
+func TestServiceRestoresPendingTaskAfterStartup(t *testing.T) {
+	examinationID, jobID := uuid.New(), uuid.New()
+	repo := &repositoryStub{
+		completed: make(chan struct{}, 1),
+		failed:    make(chan struct{}, 1),
+		pending: []ports.PendingProcessingTask{{
+			JobID:         jobID,
+			ExaminationID: examinationID,
+			Attempt:       1,
+			Transcript:    "сохранённая транскрипция",
+		}},
+	}
+	service := NewService(context.Background(), repo, speechStub{}, llmStub{}, &storageStub{}, slog.Default(), 1, 1)
+	defer service.Close()
+
+	select {
+	case <-repo.completed:
+	case <-time.After(time.Second):
+		t.Fatal("восстановленное задание не завершено")
+	}
 }

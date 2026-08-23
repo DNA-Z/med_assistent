@@ -66,6 +66,13 @@ type ExaminationWriteRepository interface {
 		doctorID int64,
 		examinationID uuid.UUID,
 	) error
+
+	ClaimPendingProcessing(
+		ctx context.Context,
+		staleBefore time.Time,
+		claimedAt time.Time,
+		limit int,
+	) ([]PendingProcessingTask, error)
 }
 
 // DoctorWriteRepository управляет регистрацией врачей.
@@ -133,4 +140,14 @@ type ProcessingJobWriteModel struct {
 	Attempt       int
 	CreatedAt     time.Time
 	UpdatedAt     time.Time
+}
+
+// PendingProcessingTask содержит данные восстановленного фонового задания.
+type PendingProcessingTask struct {
+	JobID         uuid.UUID
+	ExaminationID uuid.UUID
+	Attempt       int
+	Transcript    string
+	ObjectKey     string
+	FileName      string
 }

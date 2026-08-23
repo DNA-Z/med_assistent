@@ -12,9 +12,11 @@ func (s *Service) process(task processingTask) {
 	examinationID, jobID := task.examinationID, task.jobID
 	ctx, cancel := context.WithTimeout(s.processingCtx, 15*time.Minute)
 	defer cancel()
-	if err := s.writeRepo.StartProcessing(ctx, examinationID, jobID, time.Now().UTC(), 1); err != nil {
-		s.logger.Error("failed to start processing", "examination_id", examinationID, "error", err)
-		return
+	if !task.started {
+		if err := s.writeRepo.StartProcessing(ctx, examinationID, jobID, time.Now().UTC(), 1); err != nil {
+			s.logger.Error("failed to start processing", "examination_id", examinationID, "error", err)
+			return
+		}
 	}
 	s.logger.Info("обработка обследования начата", "examination_id", examinationID, "job_id", jobID, "status", "processing")
 

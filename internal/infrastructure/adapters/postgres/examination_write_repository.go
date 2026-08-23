@@ -152,4 +152,47 @@ func (r *ExaminationWriteRepository) DeleteExamination(ctx context.Context, doct
 	return err
 }
 
+// ClaimPendingProcessing транзакционно захватывает созданные и зависшие задания.
+// Блокировка SKIP LOCKED исключает одновременный захват строк конкурирующими
+// транзакциями во время прохода восстановления.
+func (r *ExaminationWriteRepository) ClaimPendingProcessing(ctx context.Context, staleBefore, claimedAt time.Time, limit int) ([]ports.PendingProcessingTask, error) {
+	if limit <= 0 {
+		return nil, nil
+	}
+	var tasks []ports.PendingProcessingTask
+	err := r.transaction(ctx, func(tx pgx.Tx) error {
+		rows, err := tx.Query(ctx, sqlqueries.PendingProcessingGet, staleBefore, limit)
+		if err != nil {
+			return err
+		}
+		for rows.Next() {
+			var task ports.PendingProcessingTask
+			if err := rows.Scan(&task.JobID, &task.ExaminationID, &task.Attempt, &task.Transcript, &task.ObjectKey, &task.FileName); err != nil {
+				rows.Close()
+				return err
+			}
+			tasks = append(tasks, task)
+		}
+		if err := rows.Err(); err != nil {
+			rows.Close()
+			return err
+		}
+		rows.Close()
+
+		for _, task := range tasks {
+			if _, err := tx.Exec(ctx, sqlqueries.ExaminationStart, task.ExaminationID, claimedAt); err != nil {
+				return err
+			}
+			if _, err := tx.Exec(ctx, sqlqueries.ProcessingJobStart, task.JobID, claimedAt, task.Attempt+1); err != nil {
+				return err
+			}
+			if err := insertOutbox(ctx, tx, task.ExaminationID, "examination.processing", []byte(`{"status":"processing"}`), claimedAt); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+	return tasks, err
+}
+
 var _ ports.ExaminationWriteRepository = (*ExaminationWriteRepository)(nil)

@@ -39,6 +39,7 @@ var (
 	ProcessingJobReset         = mustRead("processing_job_reset.sql")
 	ExaminationReset           = mustRead("examination_reset.sql")
 	ExaminationDelete          = mustRead("examination_delete.sql")
+	PendingProcessingGet       = mustRead("pending_processing_get.sql")
 	OutboxBatch                = mustRead("outbox_batch.sql")
 	OutboxMarkProcessed        = mustRead("outbox_mark_processed.sql")
 	ExaminationProjectionGet   = mustRead("examination_projection_get.sql")
