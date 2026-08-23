@@ -37,15 +37,39 @@ func insertOutbox(ctx context.Context, tx pgx.Tx, aggregateID uuid.UUID, eventTy
 	return err
 }
 
-func (r *ExaminationWriteRepository) CreateExamination(ctx context.Context, examination ports.ExaminationWriteModel, job ports.ProcessingJobWriteModel) error {
+func (r *ExaminationWriteRepository) CreateExamination(
+	ctx context.Context,
+	examination ports.ExaminationWriteModel,
+	job ports.ProcessingJobWriteModel) error {
 	return r.transaction(ctx, func(tx pgx.Tx) error {
-		if _, err := tx.Exec(ctx, sqlqueries.PatientCreate, examination.PatientID, examination.CreatedAt); err != nil {
+		if _, err := tx.Exec(ctx,
+			sqlqueries.PatientCreate,
+			examination.PatientID,
+			examination.CreatedAt); err != nil {
 			return err
 		}
-		if _, err := tx.Exec(ctx, sqlqueries.ExaminationCreate, examination.ID, examination.DoctorID, examination.PatientID, examination.ExaminationDate, examination.Status, examination.CreatedAt, examination.UpdatedAt, examination.AudioObjectKey, examination.AudioFileName, examination.AudioContentType, examination.AudioSize); err != nil {
+		if _, err := tx.Exec(ctx,
+			sqlqueries.ExaminationCreate,
+			examination.ID,
+			examination.DoctorID,
+			examination.PatientID,
+			examination.ExaminationDate,
+			examination.Status,
+			examination.CreatedAt,
+			examination.UpdatedAt,
+			examination.AudioObjectKey,
+			examination.AudioFileName,
+			examination.AudioContentType,
+			examination.AudioSize); err != nil {
 			return err
 		}
-		if _, err := tx.Exec(ctx, sqlqueries.ProcessingJobCreate, job.ID, job.ExaminationID, job.Status, job.Attempt, job.CreatedAt, job.UpdatedAt); err != nil {
+		if _, err := tx.Exec(ctx,
+			sqlqueries.ProcessingJobCreate,
+			job.ID, job.ExaminationID,
+			job.Status,
+			job.Attempt,
+			job.CreatedAt,
+			job.UpdatedAt); err != nil {
 			return err
 		}
 		return insertOutbox(ctx, tx, examination.ID, "examination.created", []byte(`{"status":"created"}`), examination.CreatedAt)
