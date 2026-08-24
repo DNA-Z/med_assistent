@@ -1,0 +1,33 @@
+db_connection_string: "postgres://postgres:postgres@localhost:5432/med_assistant?sslmode=disable"
+telegram:
+  token: ""
+  timeout: 10
+redis:
+  address: "localhost:6379"
+  password: "NaS16cyd93@go_7m"
+  db: 0
+object_storage:
+  endpoint: "localhost:9000"
+  access_key: "minioadmin"
+  secret_key: "minioadmin"
+  bucket: "medical-audio"
+  use_ssl: false
+speech:
+  provider: "mock"
+  api_key: ""
+  timeout: 60
+llm:
+  provider: "mock"
+  timeout: 60
+  gigachat:
+    token: ""
+    model: "GigaChat-2"
+    base_url: ""
+  openai:
+    api_key: ""
+    model: "gpt-5.6"
+    base_url: ""
+processing:
+  workers: 4
+  queue_size: 100
+  timeout: 900
