@@ -14,7 +14,7 @@ func (s *Service) Retry(ctx context.Context, cmd ports.RetryExaminationCommand) 
 		return ports.ErrInvalidCommand
 	}
 
-	jobID, transcript, objectKey, err := s.writeRepo.RetryProcessing(ctx, cmd.DoctorID, cmd.ExaminationID, uuid.New(), time.Now().UTC())
+	jobID, transcript, objectKey, fileName, err := s.writeRepo.RetryProcessing(ctx, cmd.DoctorID, cmd.ExaminationID, uuid.New(), time.Now().UTC())
 	if err != nil {
 		return err
 	}
@@ -32,6 +32,7 @@ func (s *Service) Retry(ctx context.Context, cmd ports.RetryExaminationCommand) 
 			examinationID: cmd.ExaminationID,
 			jobID:         jobID,
 			objectKey:     objectKey,
+			fileName:      fileName,
 			transcript:    savedTranscript,
 		}); err != nil {
 		s.fail(cmd.ExaminationID, jobID, err)

@@ -4,21 +4,20 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/google/uuid"
 	"gopkg.in/telebot.v3"
 
 	"github.com/DNA-Z/med_assistent/internal/application/ports"
 )
 
 func (b *Bot) handleStatus(c telebot.Context) error {
-	id, err := uuid.Parse(c.Message().Payload)
+	id, err := parseCommandUUID(c.Message())
 	if err != nil {
-		_, err = b.bot.Send(
+		_, sendErr := b.bot.Send(
 			c.Sender(),
 			"Использование:\n/status <id>",
 		)
 
-		return err
+		return sendErr
 	}
 
 	result, err := b.queries.Status(

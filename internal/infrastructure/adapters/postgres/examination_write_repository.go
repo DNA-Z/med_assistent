@@ -139,12 +139,13 @@ func (r *ExaminationWriteRepository) FailProcessing(ctx context.Context, examina
 	})
 }
 
-func (r *ExaminationWriteRepository) RetryProcessing(ctx context.Context, doctorID int64, examinationID, _ uuid.UUID, updatedAt time.Time) (uuid.UUID, string, string, error) {
+func (r *ExaminationWriteRepository) RetryProcessing(ctx context.Context, doctorID int64, examinationID, _ uuid.UUID, updatedAt time.Time) (uuid.UUID, string, string, string, error) {
 	var jobID uuid.UUID
 	var transcript string
 	var objectKey string
+	var fileName string
 	err := r.transaction(ctx, func(tx pgx.Tx) error {
-		if err := tx.QueryRow(ctx, sqlqueries.RetryJobGet, examinationID, doctorID).Scan(&jobID, &transcript, &objectKey); err != nil {
+		if err := tx.QueryRow(ctx, sqlqueries.RetryJobGet, examinationID, doctorID).Scan(&jobID, &transcript, &objectKey, &fileName); err != nil {
 			return err
 		}
 		if transcript == "" && objectKey == "" {
@@ -158,7 +159,7 @@ func (r *ExaminationWriteRepository) RetryProcessing(ctx context.Context, doctor
 		}
 		return insertOutbox(ctx, tx, examinationID, "examination.retry", []byte(`{"status":"created"}`), updatedAt)
 	})
-	return jobID, transcript, objectKey, err
+	return jobID, transcript, objectKey, fileName, err
 }
 
 func (r *ExaminationWriteRepository) DeleteExamination(ctx context.Context, doctorID int64, examinationID uuid.UUID) error {

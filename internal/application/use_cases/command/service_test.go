@@ -82,8 +82,8 @@ func (r *repositoryStub) FailProcessing(context.Context, uuid.UUID, uuid.UUID, s
 	r.failed <- struct{}{}
 	return nil
 }
-func (r *repositoryStub) RetryProcessing(context.Context, int64, uuid.UUID, uuid.UUID, time.Time) (uuid.UUID, string, string, error) {
-	return uuid.New(), "transcript", "", nil
+func (r *repositoryStub) RetryProcessing(context.Context, int64, uuid.UUID, uuid.UUID, time.Time) (uuid.UUID, string, string, string, error) {
+	return uuid.New(), "transcript", "", "", nil
 }
 func (r *repositoryStub) DeleteExamination(context.Context, int64, uuid.UUID) error {
 	return nil
@@ -118,10 +118,51 @@ func (s speechStub) Transcribe(_ context.Context, reader io.Reader, _ string) (s
 	return string(data), err
 }
 
+type retryRepository struct{ *repositoryStub }
+
+func (r *retryRepository) RetryProcessing(context.Context, int64, uuid.UUID, uuid.UUID, time.Time) (uuid.UUID, string, string, string, error) {
+	return uuid.New(), "", "examinations/test/source.ogg", "voice.ogg", nil
+}
+
+type fileNameSpeechStub struct{ received chan string }
+
+func (s fileNameSpeechStub) Transcribe(_ context.Context, reader io.Reader, fileName string) (string, error) {
+	s.received <- fileName
+	_, err := io.ReadAll(reader)
+	return "тестовая транскрипция", err
+}
+
 type llmStub struct{}
 
 func (llmStub) Summarize(context.Context, string) (string, error)      { return "summary", nil }
 func (llmStub) Answer(context.Context, string, string) (string, error) { return "answer", nil }
+
+func TestRetryRestoresOriginalFileName(t *testing.T) {
+	t.Parallel()
+
+	baseRepo := &repositoryStub{completed: make(chan struct{}, 1), failed: make(chan struct{}, 1)}
+	repo := &retryRepository{repositoryStub: baseRepo}
+	speech := fileNameSpeechStub{received: make(chan string, 1)}
+	service := NewService(context.Background(), repo, speech, llmStub{}, &storageStub{data: []byte("audio")}, slog.Default(), 1, 1)
+	defer service.Close()
+
+	err := service.Retry(context.Background(), ports.RetryExaminationCommand{
+		DoctorID:      42,
+		ExaminationID: uuid.New(),
+	})
+	if err != nil {
+		t.Fatalf("повторить обработку: %v", err)
+	}
+
+	select {
+	case fileName := <-speech.received:
+		if fileName != "voice.ogg" {
+			t.Fatalf("имя файла=%q, ожидалось %q", fileName, "voice.ogg")
+		}
+	case <-time.After(time.Second):
+		t.Fatal("Speech-клиент не был вызван")
+	}
+}
 
 func TestLoadProcessesInBackground(t *testing.T) {
 	repo := &repositoryStub{completed: make(chan struct{}, 1), failed: make(chan struct{}, 1)}

@@ -59,7 +59,7 @@ type ExaminationWriteRepository interface {
 		examinationID uuid.UUID,
 		jobID uuid.UUID,
 		updatedAt time.Time,
-	) (uuid.UUID, string, string, error)
+	) (uuid.UUID, string, string, string, error)
 
 	DeleteExamination(
 		ctx context.Context,

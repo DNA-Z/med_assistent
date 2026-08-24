@@ -1,4 +1,8 @@
-SELECT j.id, COALESCE(t.text, ''), COALESCE(e.audio_object_key, '')
+SELECT
+    j.id,
+    COALESCE(t.text, ''),
+    COALESCE(e.audio_object_key, ''),
+    COALESCE(e.audio_file_name, '')
 FROM processing_jobs j
 JOIN examinations e ON e.id = j.examination_id
 LEFT JOIN transcripts t ON t.examination_id = e.id
