@@ -55,7 +55,7 @@ func (w *OutboxWorker) Run(ctx context.Context) {
 		case <-ticker.C:
 			if err := w.process(ctx); err != nil {
 				w.logger.Error(
-					"failed to process outbox",
+					"не удалось обработать outbox",
 					"error", err,
 				)
 			}
@@ -125,7 +125,6 @@ func (w *OutboxWorker) project(
 	examinationID uuid.UUID,
 ) error {
 	var item ports.ExaminationDTO
-
 	err := w.pg.QueryRow(
 		ctx,
 		sqlqueries.ExaminationProjectionGet,
@@ -152,10 +151,4 @@ func (w *OutboxWorker) project(
 		w.redis,
 		item,
 	)
-}
-
-func DecodePayload(data []byte) map[string]any {
-	var result map[string]any
-	_ = json.Unmarshal(data, &result)
-	return result
 }

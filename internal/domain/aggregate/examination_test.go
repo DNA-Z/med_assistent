@@ -25,7 +25,7 @@ func TestExaminationLifecycle(t *testing.T) {
 		t.Fatal(err)
 	}
 	if examination.Status() != value_object.ExaminationSummarized {
-		t.Fatalf("status=%s", examination.Status())
+		t.Fatalf("статус=%s", examination.Status())
 	}
 }
 
@@ -33,6 +33,6 @@ func TestExaminationRejectsTranscriptBeforeProcessing(t *testing.T) {
 	examination, _ := NewExamination(uuid.New(), time.Now(), uuid.New(), uuid.New())
 	transcript, _ := value_object.NewTranscript("patient transcript")
 	if err := examination.SetTranscript(transcript); !errors.Is(err, ErrExaminationNotProcessing) {
-		t.Fatalf("err=%v", err)
+		t.Fatalf("ошибка=%v", err)
 	}
 }

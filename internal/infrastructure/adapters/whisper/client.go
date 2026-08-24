@@ -51,15 +51,15 @@ func (c *Client) Transcribe(
 	}
 	part, err := writer.CreateFormFile("file", fileName)
 	if err != nil {
-		return "", fmt.Errorf("create multipart file: %w", err)
+		return "", fmt.Errorf("создать multipart-часть файла: %w", err)
 	}
 
 	if _, err := io.Copy(part, audio); err != nil {
-		return "", fmt.Errorf("copy audio: %w", err)
+		return "", fmt.Errorf("скопировать аудио: %w", err)
 	}
 
 	if err := writer.Close(); err != nil {
-		return "", fmt.Errorf("close multipart writer: %w", err)
+		return "", fmt.Errorf("закрыть multipart writer: %w", err)
 	}
 
 	req, err := http.NewRequestWithContext(
@@ -69,7 +69,7 @@ func (c *Client) Transcribe(
 		&body,
 	)
 	if err != nil {
-		return "", fmt.Errorf("create whisper request: %w", err)
+		return "", fmt.Errorf("создать запрос к Whisper API: %w", err)
 	}
 
 	req.Header.Set("Content-Type", writer.FormDataContentType())
@@ -78,7 +78,7 @@ func (c *Client) Transcribe(
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return "", fmt.Errorf("whisper request: %w", err)
+		return "", fmt.Errorf("выполнить запрос к Whisper API: %w", err)
 	}
 	defer resp.Body.Close()
 
@@ -86,7 +86,7 @@ func (c *Client) Transcribe(
 		responseBody, _ := io.ReadAll(resp.Body)
 
 		return "", fmt.Errorf(
-			"whisper API returned status %d: %s",
+			"Whisper API вернул статус %d: %s",
 			resp.StatusCode,
 			string(responseBody),
 		)
@@ -95,11 +95,11 @@ func (c *Client) Transcribe(
 	var response transcriptionResponse
 
 	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
-		return "", fmt.Errorf("decode whisper response: %w", err)
+		return "", fmt.Errorf("декодировать ответ Whisper API: %w", err)
 	}
 
 	if response.Result == "" {
-		return "", fmt.Errorf("whisper returned empty transcription")
+		return "", fmt.Errorf("Whisper API вернул пустую транскрипцию")
 	}
 
 	return response.Result, nil

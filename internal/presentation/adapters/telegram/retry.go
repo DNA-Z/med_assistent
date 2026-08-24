@@ -33,7 +33,7 @@ func (b *Bot) handleRetry(c telebot.Context) error {
 	)
 	if err != nil {
 		b.logger.Error(
-			"failed to retry examination",
+			"не удалось повторно запустить обработку обследования",
 			"telegram_user_id", c.Sender().ID,
 			"examination_id", id,
 			"error", err,

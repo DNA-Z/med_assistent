@@ -10,25 +10,25 @@ import (
 )
 
 var (
-	ErrInvalidExaminationID   = errors.New("invalid examination id")
-	ErrInvalidDoctorID        = errors.New("invalid doctor id")
-	ErrInvalidPatientID       = errors.New("invalid patient id")
-	ErrInvalidExaminationDate = errors.New("invalid examination date")
+	ErrInvalidExaminationID   = errors.New("некорректный идентификатор обследования")
+	ErrInvalidDoctorID        = errors.New("некорректный идентификатор врача")
+	ErrInvalidPatientID       = errors.New("некорректный идентификатор пациента")
+	ErrInvalidExaminationDate = errors.New("некорректная дата обследования")
 
-	ErrTranscriptAlreadyExists = errors.New("transcript already exists")
-	ErrSummaryAlreadyExists    = errors.New("summary already exists")
-	ErrDiagnosisAlreadyExists  = errors.New("diagnosis already exists")
+	ErrTranscriptAlreadyExists = errors.New("транскрипция уже существует")
+	ErrSummaryAlreadyExists    = errors.New("выжимка уже существует")
+	ErrDiagnosisAlreadyExists  = errors.New("диагноз уже существует")
 
-	ErrTranscriptRequired = errors.New("transcript is required")
-	ErrSummaryRequired    = errors.New("summary is required")
-	ErrDiagnosisRequired  = errors.New("diagnosis is required")
+	ErrTranscriptRequired = errors.New("требуется транскрипция")
+	ErrSummaryRequired    = errors.New("требуется выжимка")
+	ErrDiagnosisRequired  = errors.New("требуется диагноз")
 
 	ErrExaminationNotProcessing = errors.New(
-		"examination is not in processing state",
+		"обследование не находится в состоянии обработки",
 	)
 
 	ErrExaminationNotReady = errors.New(
-		"examination is not ready to be completed",
+		"обследование не готово к завершению",
 	)
 )
 
@@ -89,7 +89,7 @@ func NewExamination(
 func (e *Examination) StartProcessing() error {
 	if e.status != value_object.ExaminationCreated &&
 		e.status != value_object.ExaminationFailed {
-		return errors.New("examination cannot be started")
+		return errors.New("обследование нельзя запустить")
 	}
 
 	e.status = value_object.ExaminationProcessing
@@ -129,7 +129,7 @@ func (e *Examination) SetSummary(
 
 	if e.status != value_object.ExaminationTranscribed {
 		return errors.New(
-			"summary can only be added after transcription",
+			"выжимку можно добавить только после транскрипции",
 		)
 	}
 
@@ -156,7 +156,7 @@ func (e *Examination) AssignDiagnosis(
 	if e.status != value_object.ExaminationSummarized &&
 		e.status != value_object.ExaminationCompleted {
 		return errors.New(
-			"diagnosis can only be assigned after summary",
+			"диагноз можно назначить только после создания выжимки",
 		)
 	}
 
@@ -196,12 +196,12 @@ func (e *Examination) Complete() error {
 
 func (e *Examination) Fail(reason error) error {
 	if reason == nil {
-		return errors.New("failure reason is required")
+		return errors.New("требуется причина ошибки")
 	}
 
 	if e.status == value_object.ExaminationCompleted {
 		return errors.New(
-			"completed examination cannot be failed",
+			"завершённое обследование нельзя перевести в состояние ошибки",
 		)
 	}
 

@@ -10,7 +10,7 @@ const (
 	Female Sex = "женский"
 )
 
-var ErrInvalidSex = errors.New("invalid sex")
+var ErrInvalidSex = errors.New("некорректный пол")
 
 func NewSex(value string) (Sex, error) {
 	sex := Sex(value)

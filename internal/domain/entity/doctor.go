@@ -9,11 +9,11 @@ import (
 )
 
 var (
-	ErrInvalidDoctorID       = errors.New("invalid doctor id")
-	ErrEmptyDoctorName       = errors.New("doctor name cannot be empty")
-	ErrEmptyDoctorLastName   = errors.New("doctor last name cannot be empty")
-	ErrEmptyDoctorPosition   = errors.New("doctor position cannot be empty")
-	ErrInvalidWorkExperience = errors.New("invalid work experience")
+	ErrInvalidDoctorID       = errors.New("некорректный идентификатор врача")
+	ErrEmptyDoctorName       = errors.New("имя врача не может быть пустым")
+	ErrEmptyDoctorLastName   = errors.New("фамилия врача не может быть пустой")
+	ErrEmptyDoctorPosition   = errors.New("должность врача не может быть пустой")
+	ErrInvalidWorkExperience = errors.New("некорректный стаж работы")
 )
 
 // Doctor — врач-психиатр, работающий с системой.

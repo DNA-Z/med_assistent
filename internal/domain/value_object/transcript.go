@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-var ErrEmptyTranscript = errors.New("transcript cannot be empty")
+var ErrEmptyTranscript = errors.New("транскрипция не может быть пустой")
 
 type Transcript struct {
 	value string

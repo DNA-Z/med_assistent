@@ -67,7 +67,7 @@ func (c *Client) Ask(
 
 	body, err := json.Marshal(requestBody)
 	if err != nil {
-		return "", fmt.Errorf("marshal gigachat request: %w", err)
+		return "", fmt.Errorf("сериализовать запрос к GigaChat: %w", err)
 	}
 
 	req, err := http.NewRequestWithContext(
@@ -77,7 +77,7 @@ func (c *Client) Ask(
 		bytes.NewReader(body),
 	)
 	if err != nil {
-		return "", fmt.Errorf("create gigachat request: %w", err)
+		return "", fmt.Errorf("создать запрос к GigaChat: %w", err)
 	}
 
 	req.Header.Set("Content-Type", "application/json")
@@ -86,7 +86,7 @@ func (c *Client) Ask(
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return "", fmt.Errorf("gigachat request: %w", err)
+		return "", fmt.Errorf("выполнить запрос к GigaChat: %w", err)
 	}
 	defer resp.Body.Close()
 
@@ -94,7 +94,7 @@ func (c *Client) Ask(
 		responseBody, _ := io.ReadAll(resp.Body)
 
 		return "", fmt.Errorf(
-			"gigachat API returned status %d: %s",
+			"GigaChat API вернул статус %d: %s",
 			resp.StatusCode,
 			string(responseBody),
 		)
@@ -103,17 +103,17 @@ func (c *Client) Ask(
 	var response chatResponse
 
 	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
-		return "", fmt.Errorf("decode gigachat response: %w", err)
+		return "", fmt.Errorf("декодировать ответ GigaChat: %w", err)
 	}
 
 	if len(response.Choices) == 0 {
-		return "", fmt.Errorf("gigachat returned no choices")
+		return "", fmt.Errorf("GigaChat не вернул вариантов ответа")
 	}
 
 	content := response.Choices[0].Message.Content
 
 	if content == "" {
-		return "", fmt.Errorf("gigachat returned empty response")
+		return "", fmt.Errorf("GigaChat вернул пустой ответ")
 	}
 
 	return content, nil

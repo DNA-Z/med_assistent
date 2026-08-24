@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-var ErrInvalidICDCode = errors.New("invalid ICD-11 code")
+var ErrInvalidICDCode = errors.New("некорректный код МКБ-11")
 
 // ICDCode — код диагноза по МКБ-11.
 type ICDCode string

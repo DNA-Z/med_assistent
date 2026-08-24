@@ -34,7 +34,7 @@ func (b *Bot) handleGet(c telebot.Context) error {
 	)
 	if err != nil {
 		b.logger.Error(
-			"failed to get examination",
+			"не удалось получить обследование",
 			"telegram_user_id", c.Sender().ID,
 			"examination_id", id,
 			"error", err,

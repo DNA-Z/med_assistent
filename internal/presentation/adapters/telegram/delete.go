@@ -33,7 +33,7 @@ func (b *Bot) handleDelete(c telebot.Context) error {
 	)
 	if err != nil {
 		b.logger.Error(
-			"failed to delete examination",
+			"не удалось удалить обследование",
 			"telegram_user_id", c.Sender().ID,
 			"examination_id", id,
 			"error", err,

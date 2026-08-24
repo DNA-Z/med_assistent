@@ -30,7 +30,7 @@ import (
 func main() {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 	if err := run(logger); err != nil {
-		logger.Error("application stopped with error", "error", err)
+		logger.Error("приложение остановлено с ошибкой", "error", err)
 		os.Exit(1)
 	}
 }
@@ -38,7 +38,7 @@ func main() {
 func run(logger *slog.Logger) (runErr error) {
 	cfg := config.NewConfig()
 	if err := cfg.ConfigInit(); err != nil {
-		return fmt.Errorf("load config: %w", err)
+		return fmt.Errorf("загрузить конфигурацию: %w", err)
 	}
 	if err := validateConfig(cfg); err != nil {
 		return err
@@ -49,7 +49,7 @@ func run(logger *slog.Logger) (runErr error) {
 
 	pg, err := postgres.New(ctx, cfg.DBConnectionString)
 	if err != nil {
-		return fmt.Errorf("connect postgres: %w", err)
+		return fmt.Errorf("подключиться к PostgreSQL: %w", err)
 	}
 	defer func() {
 		pg.Close()
@@ -58,11 +58,11 @@ func run(logger *slog.Logger) (runErr error) {
 
 	rdb, err := redisadapter.New(cfg.Redis.Address, cfg.Redis.Password, cfg.Redis.DB)
 	if err != nil {
-		return fmt.Errorf("connect redis: %w", err)
+		return fmt.Errorf("подключиться к Redis: %w", err)
 	}
 	defer func() {
 		if err := rdb.Close(); err != nil {
-			runErr = errors.Join(runErr, fmt.Errorf("close redis: %w", err))
+			runErr = errors.Join(runErr, fmt.Errorf("закрыть соединение с Redis: %w", err))
 			return
 		}
 		logger.Info("соединение с Redis закрыто")
@@ -70,7 +70,7 @@ func run(logger *slog.Logger) (runErr error) {
 
 	speech, llm, err := clients(cfg)
 	if err != nil {
-		return fmt.Errorf("create external clients: %w", err)
+		return fmt.Errorf("создать клиенты внешних сервисов: %w", err)
 	}
 	storage, err := objectstorage.NewMinIO(ctx, objectstorage.Config{Endpoint: cfg.ObjectStorage.Endpoint, AccessKey: cfg.ObjectStorage.AccessKey, SecretKey: cfg.ObjectStorage.SecretKey, Bucket: cfg.ObjectStorage.Bucket, UseSSL: cfg.ObjectStorage.UseSSL})
 	if err != nil {
@@ -89,7 +89,7 @@ func run(logger *slog.Logger) (runErr error) {
 	outbox := redisadapter.NewOutboxWorker(pg.Pool(), rdb, logger, storage)
 	bot, err := telegram.New(telegram.Config{Token: cfg.Telegram.Token, Timeout: cfg.Telegram.Timeout}, telegram.Dependencies{Auth: authService, Commands: commands, Queries: queries, Logger: logger})
 	if err != nil {
-		return fmt.Errorf("create telegram bot: %w", err)
+		return fmt.Errorf("создать Telegram-бота: %w", err)
 	}
 
 	group, groupCtx := errgroup.WithContext(ctx)
@@ -100,7 +100,7 @@ func run(logger *slog.Logger) (runErr error) {
 	group.Go(func() error {
 		bot.Start()
 		if groupCtx.Err() == nil {
-			return errors.New("telegram bot stopped unexpectedly")
+			return errors.New("Telegram-бот неожиданно остановился")
 		}
 		return nil
 	})
@@ -114,7 +114,7 @@ func run(logger *slog.Logger) (runErr error) {
 	logger.Info("приложение запущено", "workers", cfg.Processing.Workers, "queue_size", cfg.Processing.QueueSize)
 	if err := waitForGroup(ctx, group, 10*time.Second); err != nil {
 		stop()
-		return fmt.Errorf("run background components: %w", err)
+		return fmt.Errorf("выполнить фоновые компоненты: %w", err)
 	}
 	logger.Info("приложение остановлено")
 	return nil
@@ -122,19 +122,19 @@ func run(logger *slog.Logger) (runErr error) {
 
 func validateConfig(cfg *config.Config) error {
 	if cfg.DBConnectionString == "" {
-		return errors.New("database connection string is required")
+		return errors.New("не указана строка подключения к PostgreSQL")
 	}
 	if cfg.Redis.Address == "" {
-		return errors.New("redis address is required")
+		return errors.New("не указан адрес Redis")
 	}
 	if cfg.Telegram.Token == "" {
-		return errors.New("TELEGRAM_TOKEN is required")
+		return errors.New("не указана переменная TELEGRAM_TOKEN")
 	}
 	if cfg.ObjectStorage.Endpoint == "" || cfg.ObjectStorage.AccessKey == "" || cfg.ObjectStorage.SecretKey == "" || cfg.ObjectStorage.Bucket == "" {
 		return errors.New("не заполнена конфигурация объектного хранилища")
 	}
 	if cfg.Processing.Workers <= 0 {
-		return errors.New("количество worker'ов обработки должно быть положительным")
+		return errors.New("количество обработчиков фоновых заданий должно быть положительным")
 	}
 	if cfg.Processing.QueueSize <= 0 {
 		return errors.New("размер очереди обработки должен быть положительным")
@@ -155,7 +155,7 @@ func waitForGroup(ctx context.Context, group *errgroup.Group, shutdownTimeout ti
 		case err := <-done:
 			return err
 		case <-timer.C:
-			return errors.New("graceful shutdown timeout exceeded")
+			return errors.New("превышено время ожидания корректного завершения")
 		}
 	}
 }
@@ -166,20 +166,20 @@ func clients(cfg *config.Config) (ports.SpeechClient, ports.LLMClient, error) {
 	if cfg.Speech.Provider == "whisper" {
 		speech = whisper.NewClient(&http.Client{Timeout: time.Duration(cfg.Speech.Timeout) * time.Second}, cfg.Speech.APIKey)
 	} else if cfg.Speech.Provider != "mock" {
-		return nil, nil, fmt.Errorf("unknown speech provider %q", cfg.Speech.Provider)
+		return nil, nil, fmt.Errorf("неизвестный провайдер распознавания речи %q", cfg.Speech.Provider)
 	}
 	if cfg.LLM.Provider == "gigachat" {
 		if cfg.LLM.GigaChat.Token == "" {
-			return nil, nil, errors.New("GIGACHAT_TOKEN is required for gigachat provider")
+			return nil, nil, errors.New("для провайдера GigaChat не указана переменная GIGACHAT_TOKEN")
 		}
 		llm = gigachat.NewClient(&http.Client{Timeout: time.Duration(cfg.LLM.Timeout) * time.Second}, cfg.LLM.GigaChat.Token, cfg.LLM.GigaChat.Model, cfg.LLM.GigaChat.BaseURL)
 	} else if cfg.LLM.Provider == "openai" {
 		if cfg.LLM.OpenAI.APIKey == "" {
-			return nil, nil, errors.New("OPENAI_API_KEY is required for openai provider")
+			return nil, nil, errors.New("для провайдера OpenAI не указана переменная OPENAI_API_KEY")
 		}
 		llm = openaiadapter.NewClient(&http.Client{Timeout: time.Duration(cfg.LLM.Timeout) * time.Second}, cfg.LLM.OpenAI.APIKey, cfg.LLM.OpenAI.Model, cfg.LLM.OpenAI.BaseURL)
 	} else if cfg.LLM.Provider != "mock" {
-		return nil, nil, fmt.Errorf("unknown llm provider %q", cfg.LLM.Provider)
+		return nil, nil, fmt.Errorf("неизвестный провайдер языковой модели %q", cfg.LLM.Provider)
 	}
 	return speech, llm, nil
 }

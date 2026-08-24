@@ -6,8 +6,8 @@ import (
 )
 
 var (
-	ErrEmptyDateOfBirth  = errors.New("date of birth is empty")
-	ErrFutureDateOfBirth = errors.New("date of birth cannot be in the future")
+	ErrEmptyDateOfBirth  = errors.New("дата рождения не указана")
+	ErrFutureDateOfBirth = errors.New("дата рождения не может быть в будущем")
 )
 
 // DateOfBirth представляет дату рождения.

@@ -11,16 +11,16 @@ func TestGenericFunctionalOptions(t *testing.T) {
 	)
 
 	if config.DBConnectionString != "postgres://test" {
-		t.Fatalf("dsn=%q", config.DBConnectionString)
+		t.Fatalf("строка подключения=%q", config.DBConnectionString)
 	}
 	if config.Telegram.Token != "token" {
-		t.Fatalf("token=%q", config.Telegram.Token)
+		t.Fatalf("токен=%q", config.Telegram.Token)
 	}
 	if config.Processing.Workers != 8 {
-		t.Fatalf("workers=%d", config.Processing.Workers)
+		t.Fatalf("количество обработчиков=%d", config.Processing.Workers)
 	}
 	if config.Processing.QueueSize != 50 {
-		t.Fatalf("queue_size=%d", config.Processing.QueueSize)
+		t.Fatalf("размер очереди=%d", config.Processing.QueueSize)
 	}
 }
 
@@ -29,7 +29,7 @@ func TestGenericApplySupportsAnyConfigurationType(t *testing.T) {
 	value := customConfig{}
 	Apply(&value, Option[customConfig](func(config *customConfig) { config.Enabled = true }))
 	if !value.Enabled {
-		t.Fatal("generic option was not applied")
+		t.Fatal("обобщённая функциональная опция не была применена")
 	}
 }
 
@@ -43,15 +43,15 @@ func TestOpenAIConfigurationFromEnvironment(t *testing.T) {
 	config.applyEnvironment()
 
 	if config.LLM.Provider != "openai" {
-		t.Fatalf("provider=%q", config.LLM.Provider)
+		t.Fatalf("провайдер=%q", config.LLM.Provider)
 	}
 	if config.LLM.OpenAI.APIKey != "test-key" {
-		t.Fatalf("api_key=%q", config.LLM.OpenAI.APIKey)
+		t.Fatalf("ключ API=%q", config.LLM.OpenAI.APIKey)
 	}
 	if config.LLM.OpenAI.Model != "gpt-test" {
-		t.Fatalf("model=%q", config.LLM.OpenAI.Model)
+		t.Fatalf("модель=%q", config.LLM.OpenAI.Model)
 	}
 	if config.LLM.OpenAI.BaseURL != "https://example.test/v1" {
-		t.Fatalf("base_url=%q", config.LLM.OpenAI.BaseURL)
+		t.Fatalf("базовый URL=%q", config.LLM.OpenAI.BaseURL)
 	}
 }

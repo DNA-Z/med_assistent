@@ -9,14 +9,14 @@ import (
 )
 
 var (
-	ErrInvalidProcessingJobID  = errors.New("invalid processing job id")
-	ErrInvalidProcessingExamID = errors.New("invalid processing examination id")
-	ErrInvalidAttemptCount     = errors.New("invalid attempt count")
-	ErrJobAlreadyStarted       = errors.New("processing job already started")
-	ErrJobAlreadyCompleted     = errors.New("processing job already completed")
-	ErrJobCannotRetry          = errors.New("processing job cannot be retried")
-	ErrJobNotProcessing        = errors.New("processing job is not processing")
-	ErrProcessingErrorRequired = errors.New("processing error is required")
+	ErrInvalidProcessingJobID  = errors.New("некорректный идентификатор задания обработки")
+	ErrInvalidProcessingExamID = errors.New("некорректный идентификатор обследования в задании")
+	ErrInvalidAttemptCount     = errors.New("некорректное количество попыток")
+	ErrJobAlreadyStarted       = errors.New("задание обработки уже запущено")
+	ErrJobAlreadyCompleted     = errors.New("задание обработки уже завершено")
+	ErrJobCannotRetry          = errors.New("задание обработки нельзя повторить")
+	ErrJobNotProcessing        = errors.New("задание не находится в состоянии обработки")
+	ErrProcessingErrorRequired = errors.New("требуется ошибка обработки")
 )
 
 type ProcessingJob struct {

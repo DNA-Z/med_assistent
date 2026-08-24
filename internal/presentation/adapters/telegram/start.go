@@ -12,7 +12,7 @@ func (b *Bot) handleStart(c telebot.Context) error {
 	err := b.auth.Start(ctx, c.Sender().ID)
 	if err != nil {
 		b.logger.Error(
-			"failed to authenticate telegram user",
+			"не удалось аутентифицировать пользователя Telegram",
 			"telegram_user_id", c.Sender().ID,
 			"error", err,
 		)

@@ -94,7 +94,7 @@ func (o *Config) readConfigFile() (*Config, error) {
 	data, err := os.ReadFile(configFile)
 	if err != nil {
 		return nil, fmt.Errorf(
-			"failed to read config file %s: %w",
+			"прочитать файл конфигурации %s: %w",
 			configFile,
 			err,
 		)
@@ -104,7 +104,7 @@ func (o *Config) readConfigFile() (*Config, error) {
 
 	if err := yaml.Unmarshal(data, cfg); err != nil {
 		return nil, fmt.Errorf(
-			"failed to parse config file %s: %w",
+			"разобрать файл конфигурации %s: %w",
 			configFile,
 			err,
 		)

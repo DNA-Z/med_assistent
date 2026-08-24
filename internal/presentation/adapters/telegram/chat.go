@@ -19,7 +19,7 @@ func (b *Bot) handleChat(c telebot.Context) error {
 	}
 	answer, err := b.queries.Chat(context.Background(), ports.ChatQuery{DoctorID: c.Sender().ID, Question: question})
 	if err != nil {
-		b.logger.Error("failed to chat", "error", err)
+		b.logger.Error("не удалось получить ответ чата", "error", err)
 		_, sendErr := b.bot.Send(c.Sender(), "Не удалось получить ответ.")
 		return sendErr
 	}

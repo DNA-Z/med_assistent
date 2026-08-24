@@ -14,7 +14,7 @@ func (s *Service) process(task processingTask) {
 	defer cancel()
 	if !task.started {
 		if err := s.writeRepo.StartProcessing(ctx, examinationID, jobID, time.Now().UTC(), 1); err != nil {
-			s.logger.Error("failed to start processing", "examination_id", examinationID, "error", err)
+			s.logger.Error("не удалось начать обработку", "examination_id", examinationID, "error", err)
 			return
 		}
 	}
@@ -39,7 +39,7 @@ func (s *Service) process(task processingTask) {
 		s.logger.Info("Speech-клиент завершил распознавание", "examination_id", examinationID)
 	}
 	if text == "" {
-		s.fail(examinationID, jobID, errors.New("empty transcript"))
+		s.fail(examinationID, jobID, errors.New("получена пустая транскрипция"))
 		return
 	}
 	if err := s.writeRepo.SaveTranscript(ctx, examinationID, jobID, text, time.Now().UTC()); err != nil {
@@ -63,7 +63,7 @@ func (s *Service) process(task processingTask) {
 	s.logger.Info("краткая выжимка сохранена", "examination_id", examinationID, "status", "summarized")
 
 	if err := s.writeRepo.CompleteProcessing(ctx, examinationID, jobID, time.Now().UTC()); err != nil {
-		s.logger.Error("failed to complete processing", "examination_id", examinationID, "error", err)
+		s.logger.Error("не удалось завершить обработку", "examination_id", examinationID, "error", err)
 		return
 	}
 	s.logger.Info("обработка обследования завершена", "examination_id", examinationID, "job_id", jobID, "status", "completed")
@@ -73,7 +73,7 @@ func (s *Service) fail(examinationID, jobID uuid.UUID, processingErr error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	if err := s.writeRepo.FailProcessing(ctx, examinationID, jobID, processingErr.Error(), time.Now().UTC()); err != nil {
-		s.logger.Error("failed to save processing error", "examination_id", examinationID, "error", err)
+		s.logger.Error("не удалось сохранить ошибку обработки", "examination_id", examinationID, "error", err)
 		return
 	}
 	s.logger.Error("обработка обследования завершилась ошибкой", "examination_id", examinationID, "job_id", jobID, "status", "failed", "error", processingErr)

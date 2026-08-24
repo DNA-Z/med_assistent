@@ -19,7 +19,7 @@ func (b *Bot) handleFind(c telebot.Context) error {
 	}
 	items, err := b.queries.Find(context.Background(), ports.FindExaminationsQuery{DoctorID: c.Sender().ID, Keyword: keyword})
 	if err != nil {
-		b.logger.Error("failed to find examinations", "error", err)
+		b.logger.Error("не удалось найти обследования", "error", err)
 		_, sendErr := b.bot.Send(c.Sender(), "Не удалось выполнить поиск.")
 		return sendErr
 	}

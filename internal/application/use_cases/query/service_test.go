@@ -35,13 +35,13 @@ func TestGetPassesCurrentDoctorToRepository(t *testing.T) {
 	repo := &readStub{}
 	_, err := NewService(repo, llmStub{}, slog.Default()).Get(context.Background(), ports.GetExaminationQuery{DoctorID: 77, ExaminationID: uuid.New()})
 	if !errors.Is(err, ports.ErrExaminationNotFound) || repo.doctorID != 77 {
-		t.Fatalf("doctor=%d err=%v", repo.doctorID, err)
+		t.Fatalf("врач=%d, ошибка=%v", repo.doctorID, err)
 	}
 }
 
 func TestFindRejectsEmptyKeyword(t *testing.T) {
 	_, err := NewService(&readStub{}, llmStub{}, slog.Default()).Find(context.Background(), ports.FindExaminationsQuery{DoctorID: 1, Keyword: "  "})
 	if !errors.Is(err, ports.ErrEmptyKeyword) {
-		t.Fatalf("err=%v", err)
+		t.Fatalf("ошибка=%v", err)
 	}
 }

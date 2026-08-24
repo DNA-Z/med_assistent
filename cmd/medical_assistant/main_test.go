@@ -20,11 +20,11 @@ func TestValidateConfig(t *testing.T) {
 	cfg.ObjectStorage.SecretKey = "secret"
 	cfg.ObjectStorage.Bucket = "audio"
 	if err := validateConfig(cfg); err != nil {
-		t.Fatalf("valid config rejected: %v", err)
+		t.Fatalf("корректная конфигурация отклонена: %v", err)
 	}
 	cfg.Telegram.Token = ""
 	if err := validateConfig(cfg); err == nil || !strings.Contains(err.Error(), "TELEGRAM_TOKEN") {
-		t.Fatalf("err=%v", err)
+		t.Fatalf("ошибка=%v", err)
 	}
 }
 
@@ -37,7 +37,7 @@ func TestWaitForGroupTimesOutDuringShutdown(t *testing.T) {
 	err := waitForGroup(ctx, group, time.Millisecond)
 	close(release)
 	if err == nil {
-		t.Fatal("timeout error expected")
+		t.Fatal("ожидалась ошибка превышения времени ожидания")
 	}
 }
 
@@ -56,6 +56,6 @@ func TestClientsRequireOpenAIAPIKey(t *testing.T) {
 	cfg.LLM.Provider = "openai"
 
 	if _, _, err := clients(cfg); err == nil || !strings.Contains(err.Error(), "OPENAI_API_KEY") {
-		t.Fatalf("err=%v", err)
+		t.Fatalf("ошибка=%v", err)
 	}
 }

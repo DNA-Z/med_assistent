@@ -19,7 +19,7 @@ func (b *Bot) handleList(c telebot.Context) error {
 	)
 	if err != nil {
 		b.logger.Error(
-			"failed to list examinations",
+			"не удалось получить список обследований",
 			"telegram_user_id", c.Sender().ID,
 			"error", err,
 		)

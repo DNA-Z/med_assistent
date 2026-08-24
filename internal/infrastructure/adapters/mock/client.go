@@ -15,11 +15,11 @@ func (SpeechClient) Transcribe(ctx context.Context, file io.Reader, _ string) (s
 	}
 	data, err := io.ReadAll(file)
 	if err != nil {
-		return "", fmt.Errorf("read test recording: %w", err)
+		return "", fmt.Errorf("прочитать тестовую запись: %w", err)
 	}
 	text := strings.TrimSpace(string(data))
 	if text == "" {
-		return "", fmt.Errorf("test recording is empty")
+		return "", fmt.Errorf("тестовая запись пуста")
 	}
 	return text, nil
 }
@@ -42,7 +42,7 @@ func (LLMClient) Answer(ctx context.Context, contextText, question string) (stri
 		return "", err
 	}
 	if strings.TrimSpace(contextText) == "" {
-		return "", fmt.Errorf("no examination context")
+		return "", fmt.Errorf("отсутствует контекст обследований")
 	}
 	return "Тестовый ответ на вопрос «" + strings.TrimSpace(question) + "» по сохранённым материалам.", nil
 }

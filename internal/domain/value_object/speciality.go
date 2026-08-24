@@ -10,7 +10,7 @@ const (
 	Psychiatrist Speciality = "psychiatrist"
 )
 
-var ErrInvalidSpeciality = errors.New("invalid speciality")
+var ErrInvalidSpeciality = errors.New("некорректная специальность")
 
 func NewSpeciality(value string) (Speciality, error) {
 	speciality := Speciality(value)

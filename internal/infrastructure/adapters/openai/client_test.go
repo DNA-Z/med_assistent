@@ -16,7 +16,7 @@ func TestClientUsesResponsesAPI(t *testing.T) {
 			t.Errorf("путь запроса = %q", request.URL.Path)
 		}
 		if authorization := request.Header.Get("Authorization"); authorization != "Bearer test-key" {
-			t.Errorf("Authorization = %q", authorization)
+			t.Errorf("заголовок Authorization = %q", authorization)
 		}
 		var body struct {
 			Model string `json:"model"`
@@ -27,7 +27,7 @@ func TestClientUsesResponsesAPI(t *testing.T) {
 			t.Errorf("не удалось декодировать запрос: %v", err)
 		}
 		if body.Model != "gpt-test" {
-			t.Errorf("model = %q", body.Model)
+			t.Errorf("модель = %q", body.Model)
 		}
 		if !strings.Contains(body.Input, "жалобы пациента") {
 			t.Errorf("в запросе отсутствует транскрипция: %q", body.Input)
@@ -43,7 +43,7 @@ func TestClientUsesResponsesAPI(t *testing.T) {
 	client := NewClient(server.Client(), "test-key", "gpt-test", server.URL)
 	result, err := client.Summarize(context.Background(), "жалобы пациента")
 	if err != nil {
-		t.Fatalf("Summarize(): %v", err)
+		t.Fatalf("ошибка Summarize(): %v", err)
 	}
 	if result != "Краткая выжимка" {
 		t.Fatalf("результат = %q", result)

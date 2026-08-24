@@ -13,7 +13,7 @@ const (
 	HighestCategory
 )
 
-var ErrInvalidCategory = errors.New("invalid doctor category")
+var ErrInvalidCategory = errors.New("некорректная категория врача")
 
 func NewCategory(value int) (Category, error) {
 	category := Category(value)

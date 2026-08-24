@@ -129,18 +129,18 @@ func TestLoadProcessesInBackground(t *testing.T) {
 	defer service.Close()
 	id, err := service.Load(context.Background(), ports.LoadExaminationCommand{DoctorID: 42, FileName: "test.txt", File: io.NopCloser(strings.NewReader("patient transcript"))})
 	if err != nil || id == uuid.Nil {
-		t.Fatalf("Load() id=%s err=%v", id, err)
+		t.Fatalf("Load(): идентификатор=%s, ошибка=%v", id, err)
 	}
 	select {
 	case <-repo.completed:
 	case <-time.After(time.Second):
-		t.Fatal("processing did not complete")
+		t.Fatal("обработка не завершилась")
 	}
 }
 
 func TestLoadPersistsExternalClientFailure(t *testing.T) {
 	repo := &repositoryStub{completed: make(chan struct{}, 1), failed: make(chan struct{}, 1)}
-	service := NewService(context.Background(), repo, speechStub{err: errors.New("speech unavailable")}, llmStub{}, &storageStub{}, slog.Default(), 1, 1)
+	service := NewService(context.Background(), repo, speechStub{err: errors.New("сервис распознавания недоступен")}, llmStub{}, &storageStub{}, slog.Default(), 1, 1)
 	defer service.Close()
 	_, err := service.Load(context.Background(), ports.LoadExaminationCommand{DoctorID: 42, File: io.NopCloser(strings.NewReader("audio"))})
 	if err != nil {
@@ -149,7 +149,7 @@ func TestLoadPersistsExternalClientFailure(t *testing.T) {
 	select {
 	case <-repo.failed:
 	case <-time.After(time.Second):
-		t.Fatal("failure was not persisted")
+		t.Fatal("ошибка обработки не была сохранена")
 	}
 }
 
@@ -173,7 +173,7 @@ func TestWorkerPoolRejectsTaskWhenBoundedQueueIsFull(t *testing.T) {
 	select {
 	case <-repo.started:
 	case <-time.After(time.Second):
-		t.Fatal("worker не начал обработку")
+		t.Fatal("обработчик не начал работу")
 	}
 	if err := service.enqueue(newTask()); err != nil {
 		t.Fatalf("задание не добавлено в свободную очередь: %v", err)
@@ -225,7 +225,7 @@ func TestWorkerPoolLimitsMaximumParallelism(t *testing.T) {
 	t.Cleanup(func() {
 		releaseOnce.Do(func() { close(repo.release) })
 		if err := service.Close(); err != nil {
-			t.Errorf("Close(): %v", err)
+			t.Errorf("ошибка Close(): %v", err)
 		}
 	})
 
@@ -245,7 +245,7 @@ func TestWorkerPoolLimitsMaximumParallelism(t *testing.T) {
 		select {
 		case <-repo.started:
 		case <-time.After(time.Second):
-			t.Fatal("не все worker'ы начали обработку")
+			t.Fatal("не все обработчики начали работу")
 		}
 	}
 	if got := repo.maximum.Load(); got != workers {

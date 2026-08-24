@@ -4,7 +4,7 @@ import (
 	"errors"
 )
 
-var ErrInvalidDiagnosis = errors.New("invalid diagnosis")
+var ErrInvalidDiagnosis = errors.New("некорректный диагноз")
 
 // Diagnosis — тип для хранения кода диагноза по МКБ-11.
 type Diagnosis struct {

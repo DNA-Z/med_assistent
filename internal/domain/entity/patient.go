@@ -10,9 +10,9 @@ import (
 )
 
 var (
-	ErrInvalidPatientID     = errors.New("invalid patient id")
-	ErrEmptyPatientName     = errors.New("patient name cannot be empty")
-	ErrEmptyPatientLastName = errors.New("patient last name cannot be empty")
+	ErrInvalidPatientID     = errors.New("некорректный идентификатор пациента")
+	ErrEmptyPatientName     = errors.New("имя пациента не может быть пустым")
+	ErrEmptyPatientLastName = errors.New("фамилия пациента не может быть пустой")
 )
 
 type Patient struct {

@@ -66,40 +66,40 @@ func TestExaminationReadRepositoryIsolatesDoctors(t *testing.T) {
 
 	items, err := repository.List(ctx, doctorB)
 	if err != nil {
-		t.Fatalf("List(): %v", err)
+		t.Fatalf("ошибка List(): %v", err)
 	}
 	if len(items) != 1 || items[0].ID != examinationB.ID {
-		t.Fatalf("List() раскрыл чужие данные: %+v", items)
+		t.Fatalf("метод List() раскрыл чужие данные: %+v", items)
 	}
 
 	if _, err := repository.Get(ctx, doctorB, examinationA.ID); !errors.Is(err, ports.ErrExaminationNotFound) {
-		t.Fatalf("Get() должен скрывать чужую встречу, получено: %v", err)
+		t.Fatalf("метод Get() должен скрывать чужую встречу, получено: %v", err)
 	}
 	if _, err := repository.Status(ctx, doctorB, examinationA.ID); !errors.Is(err, ports.ErrExaminationNotFound) {
-		t.Fatalf("Status() должен скрывать чужую встречу, получено: %v", err)
+		t.Fatalf("метод Status() должен скрывать чужую встречу, получено: %v", err)
 	}
 
 	found, err := repository.Find(ctx, doctorB, "секретная")
 	if err != nil {
-		t.Fatalf("Find(): %v", err)
+		t.Fatalf("ошибка Find(): %v", err)
 	}
 	if len(found) != 0 {
-		t.Fatalf("Find() раскрыл чужие данные: %+v", found)
+		t.Fatalf("метод Find() раскрыл чужие данные: %+v", found)
 	}
 
 	chatItems, err := repository.ChatContext(ctx, doctorB, nil)
 	if err != nil {
-		t.Fatalf("ChatContext(): %v", err)
+		t.Fatalf("ошибка ChatContext(): %v", err)
 	}
 	if len(chatItems) != 1 || chatItems[0].ExaminationID != examinationB.ID {
-		t.Fatalf("ChatContext() раскрыл чужие данные: %+v", chatItems)
+		t.Fatalf("метод ChatContext() раскрыл чужие данные: %+v", chatItems)
 	}
 
 	chatItems, err = repository.ChatContext(ctx, doctorB, &examinationA.ID)
 	if err != nil {
-		t.Fatalf("ChatContext() для чужой встречи: %v", err)
+		t.Fatalf("ошибка ChatContext() для чужой встречи: %v", err)
 	}
 	if len(chatItems) != 0 {
-		t.Fatalf("ChatContext() вернул чужую встречу: %+v", chatItems)
+		t.Fatalf("метод ChatContext() вернул чужую встречу: %+v", chatItems)
 	}
 }

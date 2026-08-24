@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-var ErrEmptyBriefSummary = errors.New("brief summary cannot be empty")
+var ErrEmptyBriefSummary = errors.New("краткая выжимка не может быть пустой")
 
 // BriefSummary — краткая выжимка из транскрипции с ключевыми особенностями речи пациента.
 type BriefSummary struct {

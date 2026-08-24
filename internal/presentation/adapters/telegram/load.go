@@ -64,7 +64,7 @@ func (b *Bot) processTelegramFile(
 	defer os.Remove(tempName)
 	if err := b.bot.Download(file, tempName); err != nil {
 		b.logger.Error(
-			"failed to download telegram file",
+			"не удалось скачать файл из Telegram",
 			"telegram_user_id", c.Sender().ID,
 			"file_id", fileID,
 			"error", err,
@@ -85,7 +85,7 @@ func (b *Bot) processTelegramFile(
 	data, err := readFile(tempName)
 	if err != nil {
 		b.logger.Error(
-			"failed to read downloaded file",
+			"не удалось прочитать скачанный файл",
 			"telegram_user_id", c.Sender().ID,
 			"file_name", fileName,
 			"error", err,
@@ -115,7 +115,7 @@ func (b *Bot) processTelegramFile(
 	)
 	if err != nil {
 		b.logger.Error(
-			"failed to load examination",
+			"не удалось загрузить обследование",
 			"telegram_user_id", c.Sender().ID,
 			"file_name", fileName,
 			"error", err,
